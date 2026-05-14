@@ -1,0 +1,7 @@
+{
+  "name": "nails-study",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
