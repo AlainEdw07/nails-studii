@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,45 +58,52 @@ Route::prefix('v1')->group(function () {
         // Route::post('/preguntar', [ChatbotController::class, 'preguntar']);
     });
 
-    // --- Rutas de administración (proteger con auth:sanctum o similar) ---
+    // --- Autenticación de administradores (JWT) ---
 
-    Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('admin')->group(function () {
+        Route::post('/login', [AuthController::class, 'login']);
 
-        Route::prefix('servicios')->group(function () {
-            // Route::apiResource('/', ServicioController::class);
-        });
+        Route::middleware(['auth:admin'])->group(function () {
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/refresh', [AuthController::class, 'refresh']);
+            Route::get('/perfil', [AuthController::class, 'perfil']);
 
-        Route::prefix('citas')->group(function () {
-            // Route::get('/', [CitaController::class, 'index']);
-            // Route::patch('/{cita}/estado', [CitaController::class, 'actualizarEstado']);
-            // Route::get('/{cita}/historial', [HistorialCitaController::class, 'porCita']);
-        });
+            Route::prefix('servicios')->group(function () {
+                // Route::apiResource('/', ServicioController::class);
+            });
 
-        Route::prefix('galeria')->group(function () {
-            // Route::apiResource('/', GaleriaController::class);
-        });
+            Route::prefix('citas')->group(function () {
+                // Route::get('/', [CitaController::class, 'index']);
+                // Route::patch('/{cita}/estado', [CitaController::class, 'actualizarEstado']);
+                // Route::get('/{cita}/historial', [HistorialCitaController::class, 'porCita']);
+            });
 
-        Route::prefix('resenas')->group(function () {
-            // Route::get('/', [ResenaController::class, 'indexAdmin']);
-            // Route::patch('/{resena}', [ResenaController::class, 'update']);
-            // Route::delete('/{resena}', [ResenaController::class, 'destroy']);
-        });
+            Route::prefix('galeria')->group(function () {
+                // Route::apiResource('/', GaleriaController::class);
+            });
 
-        Route::prefix('horarios')->group(function () {
-            // Route::apiResource('/', HorarioDisponibleController::class);
-        });
+            Route::prefix('resenas')->group(function () {
+                // Route::get('/', [ResenaController::class, 'indexAdmin']);
+                // Route::patch('/{resena}', [ResenaController::class, 'update']);
+                // Route::delete('/{resena}', [ResenaController::class, 'destroy']);
+            });
 
-        Route::prefix('informacion-negocio')->group(function () {
-            // Route::get('/', [InformacionNegocioController::class, 'show']);
-            // Route::put('/', [InformacionNegocioController::class, 'update']);
-        });
+            Route::prefix('horarios')->group(function () {
+                // Route::apiResource('/', HorarioDisponibleController::class);
+            });
 
-        Route::prefix('preguntas-chatbot')->group(function () {
-            // Route::apiResource('/', PreguntaChatbotController::class);
-        });
+            Route::prefix('informacion-negocio')->group(function () {
+                // Route::get('/', [InformacionNegocioController::class, 'show']);
+                // Route::put('/', [InformacionNegocioController::class, 'update']);
+            });
 
-        Route::prefix('administradores')->group(function () {
-            // Route::apiResource('/', AdministradorController::class)->except(['store']);
+            Route::prefix('preguntas-chatbot')->group(function () {
+                // Route::apiResource('/', PreguntaChatbotController::class);
+            });
+
+            Route::prefix('administradores')->group(function () {
+                // Route::apiResource('/', AdministradorController::class)->except(['store']);
+            });
         });
     });
 });
