@@ -1,0 +1,91 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Nails Studii API",
+		"description": "Colección de la API de Nails Studii.\n\nLa autenticación Bearer usa la variable `admin_token` del environment. Ejecuta primero **Iniciar sesión** para guardar el token automáticamente.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{admin_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Admin - Autenticación",
+			"item": [
+				{
+					"name": "Iniciar sesión",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Inicio de sesión exitoso', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test('Respuesta incluye token JWT', function () {",
+									"    pm.expect(response.token).to.be.a('string').and.not.empty;",
+									"});",
+									"",
+									"if (response.token) {",
+									"    pm.environment.set('admin_token', response.token);",
+									"}",
+									"",
+									"if (response.administrador) {",
+									"    pm.environment.set('admin_id', String(response.administrador.id));",
+									"    pm.environment.set('admin_nombre_usuario', response.administrador.nombre_usuario);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"correo\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"login"
+							]
+						},
+						"description": "Autentica un administrador y guarda el token JWT en la variable `admin_token` del environment activo."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de autenticación JWT para administradores."
+		}
+	]
+}
