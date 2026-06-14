@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CitaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -45,8 +46,7 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('citas')->group(function () {
-        // Route::post('/', [CitaController::class, 'store']);
-        // Route::get('/{cita}', [CitaController::class, 'show']);
+        Route::post('/', [CitaController::class, 'store']);
     });
 
     Route::prefix('informacion-negocio')->group(function () {
@@ -73,9 +73,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::prefix('citas')->group(function () {
-                // Route::get('/', [CitaController::class, 'index']);
-                // Route::patch('/{cita}/estado', [CitaController::class, 'actualizarEstado']);
-                // Route::get('/{cita}/historial', [HistorialCitaController::class, 'porCita']);
+                Route::get('/', [CitaController::class, 'index']);
             });
 
             Route::prefix('galeria')->group(function () {

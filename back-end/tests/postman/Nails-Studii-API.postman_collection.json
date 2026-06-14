@@ -86,6 +86,112 @@
 				}
 			],
 			"description": "Endpoints de autenticación JWT para administradores."
+		},
+		{
+			"name": "Citas",
+			"item": [
+				{
+					"name": "Crear cita (público)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Cita creada correctamente', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"if (response.cita && response.cita.id) {",
+									"    pm.environment.set('cita_id', String(response.cita.id));",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre_cliente\": \"María García\",\n  \"telefono\": \"5551234567\",\n  \"correo\": \"maria@ejemplo.com\",\n  \"servicio_id\": {{servicio_id}},\n  \"fecha_cita\": \"{{fecha_cita}}\",\n  \"hora_cita\": \"10:30\",\n  \"notas_adicionales\": \"Prefiero tonos neutros.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas"
+							]
+						},
+						"description": "Crea una nueva cita. No requiere autenticación. La cita se crea con estado `pendiente`."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar citas (admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Listado de citas exitoso', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const response = pm.response.json();",
+									"",
+									"pm.test('Respuesta incluye arreglo de citas', function () {",
+									"    pm.expect(response.citas).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/citas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"citas"
+							]
+						},
+						"description": "Obtiene todas las citas. Requiere token JWT de administrador (Bearer `{{admin_token}}`)."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de citas: creación pública y consulta para administradores."
 		}
 	]
 }
