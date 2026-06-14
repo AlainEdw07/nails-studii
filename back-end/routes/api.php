@@ -4,16 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Las rutas definidas aquí se cargan con el prefijo /api y el middleware
-| del grupo "api". Registra los controladores en app/Http/Controllers/Api.
-|
-*/
-
 Route::get('/', function () {
     return response()->json([
         'nombre' => config('app.name'),
