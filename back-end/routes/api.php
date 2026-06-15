@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
+use App\Http\Controllers\HorarioDisponibleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -32,7 +33,7 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('horarios')->group(function () {
-        // Route::get('/disponibles', [HorarioDisponibleController::class, 'disponibles']);
+        Route::get('/disponibles', [HorarioDisponibleController::class, 'index']);
     });
 
     Route::prefix('citas')->group(function () {
@@ -77,7 +78,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::prefix('horarios')->group(function () {
-                // Route::apiResource('/', HorarioDisponibleController::class);
+                Route::post('/', [HorarioDisponibleController::class, 'store']);
             });
 
             Route::prefix('informacion-negocio')->group(function () {

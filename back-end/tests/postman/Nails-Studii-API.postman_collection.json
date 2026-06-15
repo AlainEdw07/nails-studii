@@ -192,6 +192,113 @@
 				}
 			],
 			"description": "Gestión de citas: creación pública y consulta para administradores."
-		}
-	]
+        },
+        {
+            "name": "Horarios Disponibles",
+            "item": [
+                {
+                    "name": "Listar horarios disponibles (público)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Listado de horarios exitoso', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye arreglo de horarios_disponibles', function () {",
+                                    "    pm.expect(response.horarios_disponibles).to.be.an('array');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/horarios/disponibles",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "horarios",
+                                "disponibles"
+                            ]
+                        },
+                        "description": "Obtiene todos los horarios disponibles. No requiere autenticación."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crear horario disponible (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Horario disponible creado correctamente', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye horario_disponible', function () {",
+                                    "    pm.expect(response.horario_disponible).to.be.an('object');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"dia_semana\": \"Lunes\",\n  \"hora_inicio\": \"09:00\",\n  \"hora_fin\": \"17:00\",\n  \"activo\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/horarios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "horarios"
+                            ]
+                        },
+                        "description": "Crea un horario disponible. Requiere token JWT de administrador (Bearer `{{admin_token}}`)."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Endpoints para consultar horarios disponibles públicamente y crear horarios desde administración."
+        }
+    ]
 }
