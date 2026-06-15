@@ -1,12 +1,20 @@
 <ion-app>
-  <div class="flex flex-col h-dvh bg-[#F0EFEB]">
+  <div class="flex flex-col h-dvh bg-[#F0EFEB] select-none">
     <div
       class="bg-[url('/assets/img/background.jpg')] bg-cover bg-center bg-no-repeat shrink-0 transition-[flex] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
       [ngClass]="isHome ? 'flex-1' : 'flex-none'"
     >
       <div class="bg-white/20 backdrop-brightness-60 h-full w-full p-12 pb-0 pt-6 flex items-end">
         <div>
-          <app-navbar></app-navbar>
+          <app-chatbot *ngIf="isHome"></app-chatbot>
+          <nav class="text-[#F0EFEB] text-[18px]">
+            <ul class="flex space-x-3 [&_button]:transition-all">
+              <li><button routerLink="/home" routerLinkActive="font-bold tracking-widest">Inicio</button></li><span>/</span>
+              <li><button routerLink="/catalogo" routerLinkActive="font-bold tracking-widest">Catálogo</button></li><span>/</span>
+              <li><button routerLink="/nosotras" routerLinkActive="font-bold tracking-widest">Nosotras</button></li><span>/</span>
+              <li><button routerLink="/contactanos" routerLinkActive="font-bold tracking-widest">Contáctanos</button></li>
+            </ul>
+          </nav>
           <p class="text-[84px] tracking-[18px] text-[#F0EFEB] font-bold">NAILS STUDIO</p>
         </div>
       </div>

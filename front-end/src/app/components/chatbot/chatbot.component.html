@@ -1,0 +1,26 @@
+<div *ngIf="isOpen" class="w-72 h-102 bg-[#F0EFEB] mb-2 shadow-xl flex flex-col">
+  <!-- Mensajes -->
+  <div #mensajesContainer class="p-2 flex flex-col gap-2 overflow-y-auto flex-1">
+    <div *ngFor="let msg of mensajes" [class.justify-end]="!msg.esBot" class="flex">
+      <div [ngClass]="msg.esBot
+        ? 'bg-[#303238] text-[#F0EFEB]'
+        : 'border border-[#303238] text-[#303238]'"
+        class="min-h-8 max-w-[80%] py-1 flex items-center px-2 text-sm">
+        {{ msg.texto }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Opciones predeterminadas -->
+  <div class="p-2 flex flex-col items-end gap-1">
+    <div *ngFor="let op of opcionesActuales"
+      (click)="seleccionarOpcion(op)"
+      class="text-sm border max-w-[80%] border-[#303238] px-2 py-1 hover:bg-[#303238] hover:text-[#F0EFEB] transition-colors cursor-pointer">
+      {{ op.texto }}
+  </div>
+  </div>
+</div>
+
+<button (click)="toggleChat()" class="bg-[#F0EFEB] w-12 h-12 mb-6 hover:scale-105 transition-all">
+  <img src="/assets/icon/chat-bot.png" alt="">
+</button>
