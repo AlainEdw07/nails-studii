@@ -1,17 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CitaController;
+use App\Http\Controllers\HorarioDisponibleController;
 use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Las rutas definidas aquí se cargan con el prefijo /api y el middleware
-| del grupo "api". Registra los controladores en app/Http/Controllers/Api.
-|
-*/
 
 Route::get('/', function () {
     return response()->json([
@@ -41,12 +33,11 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('horarios')->group(function () {
-        // Route::get('/disponibles', [HorarioDisponibleController::class, 'disponibles']);
+        Route::get('/disponibles', [HorarioDisponibleController::class, 'index']);
     });
 
     Route::prefix('citas')->group(function () {
-        // Route::post('/', [CitaController::class, 'store']);
-        // Route::get('/{cita}', [CitaController::class, 'show']);
+        Route::post('/', [CitaController::class, 'store']);
     });
 
     Route::prefix('informacion-negocio')->group(function () {
@@ -73,9 +64,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::prefix('citas')->group(function () {
-                // Route::get('/', [CitaController::class, 'index']);
-                // Route::patch('/{cita}/estado', [CitaController::class, 'actualizarEstado']);
-                // Route::get('/{cita}/historial', [HistorialCitaController::class, 'porCita']);
+                Route::get('/', [CitaController::class, 'index']);
             });
 
             Route::prefix('galeria')->group(function () {
@@ -89,7 +78,7 @@ Route::prefix('v1')->group(function () {
             });
 
             Route::prefix('horarios')->group(function () {
-                // Route::apiResource('/', HorarioDisponibleController::class);
+                Route::post('/', [HorarioDisponibleController::class, 'store']);
             });
 
             Route::prefix('informacion-negocio')->group(function () {
