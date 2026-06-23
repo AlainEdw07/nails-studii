@@ -194,6 +194,63 @@
 			"description": "Gestión de citas: creación pública y consulta para administradores."
         },
         {
+            "name": "Servicios",
+            "item": [
+                {
+                    "name": "Listar servicios (público)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Listado de servicios exitoso', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye arreglo de servicios', function () {",
+                                    "    pm.expect(response.servicios).to.be.an('array');",
+                                    "});",
+                                    "",
+                                    "if (response.servicios && response.servicios.length > 0) {",
+                                    "    pm.environment.set('servicio_id', String(response.servicios[0].id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/servicios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "servicios"
+                            ]
+                        },
+                        "description": "Obtiene los servicios activos disponibles para agendar citas. No requiere autenticación."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Consulta pública de servicios activos del negocio."
+        },
+        {
             "name": "Horarios Disponibles",
             "item": [
                 {
