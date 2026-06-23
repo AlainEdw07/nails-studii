@@ -1,5 +1,6 @@
 package com.nailsstudio.wear.presentation.cita
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -39,11 +43,18 @@ fun AgendarCitaScreen(viewModel: AgendarCitaViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
     NailsWearTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.background),
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = painterResource(R.drawable.wear_background),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.28f)),
+            )
             TimeText()
             when (uiState.paso) {
                 PasoAgendarCita.CARGANDO -> CargandoContenido()
@@ -134,7 +145,29 @@ private fun CargandoContenido() {
         )
     }
 }
-
+@Composable
+private fun NavigationIconButton(
+    onClick: () -> Unit,
+    iconRes: Int,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+    ) {
+        Image(
+            painter = painterResource(iconRes),
+            contentDescription = contentDescription,
+            modifier = Modifier
+                .padding(4.dp)
+                .fillMaxSize(),
+            contentScale = ContentScale.Fit,
+        )
+    }
+}
 @Composable
 private fun PasoTexto(
     titulo: String,
@@ -187,15 +220,20 @@ private fun PasoTexto(
             }
         }
         item {
-            Button(onClick = onContinuar, modifier = Modifier.padding(top = 4.dp)) {
-                Text(stringResource(R.string.continuar))
-            }
+            NavigationIconButton(
+                onClick = onContinuar,
+                iconRes = R.drawable.ic_arrow_forward,
+                contentDescription = stringResource(R.string.continuar),
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
         if (onRetroceder != null) {
             item {
-                Button(onClick = onRetroceder) {
-                    Text(stringResource(R.string.atras))
-                }
+                NavigationIconButton(
+                    onClick = onRetroceder,
+                    iconRes = R.drawable.ic_arrow_back,
+                    contentDescription = stringResource(R.string.atras),
+                )
             }
         }
     }
@@ -228,9 +266,11 @@ private fun PasoServicio(
             )
         }
         item {
-            Button(onClick = onRetroceder) {
-                Text(stringResource(R.string.atras))
-            }
+            NavigationIconButton(
+                onClick = onRetroceder,
+                iconRes = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.atras),
+            )
         }
     }
 }
@@ -262,9 +302,11 @@ private fun PasoDia(
             )
         }
         item {
-            Button(onClick = onRetroceder) {
-                Text(stringResource(R.string.atras))
-            }
+            NavigationIconButton(
+                onClick = onRetroceder,
+                iconRes = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.atras),
+            )
         }
     }
 }
@@ -298,9 +340,11 @@ private fun PasoFecha(
             )
         }
         item {
-            Button(onClick = onRetroceder) {
-                Text(stringResource(R.string.atras))
-            }
+            NavigationIconButton(
+                onClick = onRetroceder,
+                iconRes = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.atras),
+            )
         }
     }
 }
@@ -332,9 +376,11 @@ private fun PasoHora(
             )
         }
         item {
-            Button(onClick = onRetroceder) {
-                Text(stringResource(R.string.atras))
-            }
+            NavigationIconButton(
+                onClick = onRetroceder,
+                iconRes = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.atras),
+            )
         }
     }
 }
@@ -398,9 +444,12 @@ private fun PasoConfirmacion(
             }
         }
         item {
-            Button(onClick = onRetroceder, enabled = !cargando) {
-                Text(stringResource(R.string.atras))
-            }
+            NavigationIconButton(
+                onClick = onRetroceder,
+                iconRes = R.drawable.ic_arrow_back,
+                contentDescription = stringResource(R.string.atras),
+                enabled = !cargando,
+            )
         }
     }
 }
