@@ -2,8 +2,26 @@ import { join } from 'path'
 import { createBot, createProvider, createFlow, addKeyword, utils } from '@builderbot/bot'
 import { MemoryDB as Database } from '@builderbot/bot'
 import { BaileysProvider as Provider } from '@builderbot/provider-baileys'
+import { ChatbotApiService } from './services/chatbotApi.js'
 
 const PORT = process.env.PORT ?? 3008
+const LARAVEL_API_URL = process.env.LARAVEL_API_URL ?? 'http://localhost:8000/v1'
+const chatbotApi = new ChatbotApiService(LARAVEL_API_URL)
+
+const loadChatbotData = async () => {
+    try {
+        const data = await chatbotApi.getChatbotData()
+        console.log('Chatbot API data loaded', {
+            preguntas: data.preguntas.length,
+            servicios: data.servicios.length,
+            horarios_disponibles: data.horarios_disponibles.length,
+        })
+        return data
+    } catch (error) {
+        console.warn('No se pudo cargar la configuración del chatbot desde la API:', error)
+        return null
+    }
+}
 
 const discordFlow = addKeyword<Provider, Database>('doc').addAnswer(
     ['You can see the documentation here', '📄 https://builderbot.app/docs \n', 'Do you want to continue? *yes*'].join(
@@ -59,6 +77,7 @@ const fullSamplesFlow = addKeyword<Provider, Database>(['samples', utils.setEven
     })
 
 const main = async () => {
+    const chatbotData = await loadChatbotData()
     const adapterFlow = createFlow([welcomeFlow, registerFlow, fullSamplesFlow])
     
     // If you experience ERRO AUTH issues, check the latest WhatsApp version at:

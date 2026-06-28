@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\HorarioDisponibleController;
+use App\Http\Controllers\PreguntaChatbotController;
 use App\Http\Controllers\ServicioController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,7 +46,7 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('chatbot')->group(function () {
-        // Route::get('/preguntas', [PreguntaChatbotController::class, 'index']);
+        Route::get('/preguntas', [PreguntaChatbotController::class, 'index']);
         // Route::post('/preguntar', [ChatbotController::class, 'preguntar']);
     });
 
