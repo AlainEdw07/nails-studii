@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.ListHeader
@@ -53,7 +54,7 @@ fun AgendarCitaScreen(viewModel: AgendarCitaViewModel = viewModel()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.28f)),
+                    .background(Color.Black.copy(alpha = 0.55f)),
             )
             TimeText()
             when (uiState.paso) {
@@ -157,6 +158,10 @@ private fun NavigationIconButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color(0xFF7D948E),
+            contentColor = Color.White,
+        ),
     ) {
         Image(
             painter = painterResource(iconRes),
@@ -435,11 +440,19 @@ private fun PasoConfirmacion(
                 onClick = onConfirmar,
                 enabled = !cargando,
                 modifier = Modifier.padding(top = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color(0xFF7D948E),
+                    contentColor = Color.White,
+                ),
             ) {
                 if (cargando) {
                     CircularProgressIndicator()
                 } else {
-                    Text(stringResource(R.string.confirmar))
+                    Text(
+                        text = "✓",
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -469,8 +482,19 @@ private fun PasoExito(mensaje: String, onNuevaCita: () -> Unit) {
             )
         }
         item {
-            Button(onClick = onNuevaCita, modifier = Modifier.padding(top = 4.dp)) {
-                Text(stringResource(R.string.nueva_cita))
+            Button(
+                onClick = onNuevaCita,
+                modifier = Modifier.padding(top = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color(0xFF7D948E),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text(
+                    text = "+",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
