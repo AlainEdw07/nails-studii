@@ -3,7 +3,6 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\HorarioDisponibleController;
-use App\Http\Controllers\ReplicateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,8 +18,7 @@ Route::prefix('v1')->group(function () {
     // --- Rutas públicas (sitio web / clientes) ---
 
     Route::prefix('servicios')->group(function () {
-        // Route::get('/', [ServicioController::class, 'index']);
-        // Route::get('/{servicio}', [ServicioController::class, 'show']);
+        Route::get('/', [ServicioController::class, 'index']);
     });
 
     Route::prefix('galeria')->group(function () {

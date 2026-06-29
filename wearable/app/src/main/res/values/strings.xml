@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">NailsWear</string>
+    <string name="agendar_cita">Agendar cita</string>
+    <string name="nombre_cliente">Nombre</string>
+    <string name="telefono_cliente">Teléfono</string>
+    <string name="correo_cliente">Correo</string>
+    <string name="selecciona_servicio">Selecciona el servicio</string>
+    <string name="continuar">Continuar</string>
+    <string name="atras">Atrás</string>
+    <string name="confirmar">Confirmar</string>
+    <string name="selecciona_dia">Selecciona el día</string>
+    <string name="selecciona_fecha">Fechas para %1$s</string>
+    <string name="selecciona_hora">Selecciona la hora</string>
+    <string name="confirmar_cita">Confirmar cita</string>
+    <string name="resumen_cita">%1$s\n%2$s\n%3$s\n%4$s\n%5$s %6$s\n%7$s</string>
+    <string name="cita_agendada">¡Cita agendada!</string>
+    <string name="nueva_cita">Nueva cita</string>
+    <string name="cargando_datos">Cargando datos…</string>
+</resources>
