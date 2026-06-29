@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\HorarioDisponibleController;
+use App\Http\Controllers\ReplicateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -47,6 +48,10 @@ Route::prefix('v1')->group(function () {
     Route::prefix('chatbot')->group(function () {
         // Route::get('/preguntas', [PreguntaChatbotController::class, 'index']);
         // Route::post('/preguntar', [ChatbotController::class, 'preguntar']);
+    });
+
+    Route::prefix('replicate')->group(function () {
+        Route::post('/probar-diseno', [ReplicateController::class, 'probarDiseno']);
     });
 
     // --- Autenticación de administradores (JWT) ---
