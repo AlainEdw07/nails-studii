@@ -50,6 +50,10 @@ Route::prefix('v1')->group(function () {
         // Route::post('/preguntar', [ChatbotController::class, 'preguntar']);
     });
 
+    Route::prefix('replicate')->group(function () {
+        Route::post('/probar-diseno', [ReplicateController::class, 'probarDiseno']);
+    });
+
     // --- Autenticación de administradores (JWT) ---
 
     Route::prefix('admin')->group(function () {

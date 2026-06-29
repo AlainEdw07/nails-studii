@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'replicate' => [
+        'token'         => env('REPLICATE_API_TOKEN'),
+        'model_version' => env('REPLICATE_MODEL_VERSION', 'timothybrooks/instruct-pix2pix:30c1d0b916a6f8efce20493f5d61ee27491ab2a60dc00b807de8a36b0b89a9d0'),
+    ],
+
 ];

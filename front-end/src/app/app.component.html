@@ -2,26 +2,118 @@
   <div class="flex flex-col h-dvh bg-[#F0EFEB] select-none">
     <div
       class="bg-[url('/assets/img/background.jpg')] bg-cover bg-center bg-no-repeat shrink-0 transition-[flex] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-      [ngClass]="isHome ? 'flex-1' : 'flex-none'"
-    >
-      <div class="bg-white/20 backdrop-brightness-60 h-full w-full p-12 pb-0 pt-6 flex items-end">
+      [ngClass]="isHome ? 'flex-1' : 'flex-none'">
+      <div class="bg-white/20 backdrop-brightness-60 h-full w-full p-6 sm:p-12 pb-0 pt-6 flex items-end">
         <div>
           <app-chatbot *ngIf="isHome"></app-chatbot>
           <nav class="text-[#F0EFEB] text-[18px]">
-            <ul class="flex space-x-3 [&_button]:transition-all">
-              <li><button routerLink="/home" routerLinkActive="font-bold tracking-widest">Inicio</button></li><span>/</span>
-              <li><button routerLink="/catalogo" routerLinkActive="font-bold tracking-widest">Catálogo</button></li><span>/</span>
-              <li><button routerLink="/nosotras" routerLinkActive="font-bold tracking-widest">Nosotras</button></li><span>/</span>
-              <li><button routerLink="/contactanos" routerLinkActive="font-bold tracking-widest">Contáctanos</button></li>
+            <ul class="flex space-x-2 sm:space-x-3 [&_button]:transition-all">
+              <li><button routerLink="/home" routerLinkActive="font-bold tracking-widest">Inicio</button></li>
+              <span>/</span>
+              <li><button routerLink="/catalogo" routerLinkActive="font-bold tracking-widest">Catálogo</button></li>
+              <span>/</span>
+              <li><button routerLink="/nosotras" routerLinkActive="font-bold tracking-widest">Nosotras</button></li>
+              <!-- <span>/</span> -->
+              <!-- <li><button routerLink="/contactanos" routerLinkActive="font-bold tracking-widest">Contáctanos</button></li> -->
             </ul>
           </nav>
-          <p class="text-[84px] tracking-[18px] text-[#F0EFEB] font-bold">NAILS STUDIO</p>
+          <p class="text-[84px] tracking-[7px] sm:tracking-[18px] text-[#F0EFEB] font-bold">NAILS STUDIO</p>
         </div>
       </div>
     </div>
-    <div class="relative overflow-hidden transition-all duration-700"
-         [ngClass]="isHome ? 'h-0' : 'flex-1'">
+    <div class="relative overflow-hidden transition-all duration-700" [ngClass]="isHome ? 'h-0' : 'flex-1'">
       <ion-router-outlet [animation]="curtainUpAnimation"></ion-router-outlet>
+    </div>
+  </div>
+
+  <!-- Modal galería a nivel raíz -->
+  <div *ngIf="galeriaModal.imgSeleccionada$ | async as img"
+    class="modal-overlay fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999]"
+    (click)="galeriaModal.cerrar()">
+
+    <!-- Contenedor principal: flex centrado, se reajusta al expandir -->
+    <div class="flex items-center justify-center transition-all duration-500" (click)="$event.stopPropagation()">
+
+      <!-- Sección imagen + botón -->
+      <div class="flex flex-col items-center">
+        <img [src]="img" class="modal-img max-h-[80vh] max-w-[55vw] object-contain shadow-2xl" />
+
+        <!-- Botón colapsa en altura al activar -->
+        <div class="overflow-hidden transition-all duration-300"
+          [style.max-height]="probarDiseno ? '0px' : '80px'"
+          [style.opacity]="probarDiseno ? '0' : '1'"
+          [style.margin-top]="probarDiseno ? '0' : '1.5rem'">
+          <button class="bg-[#F0EFEB] w-62 h-10 font-bold text-[#2f4858] hover:w-78 transition-all"
+            (click)="galeriaModal.activarProbar()">
+            PROBAR DISEÑO
+          </button>
+        </div>
+      </div>
+
+      <!-- Sección cámara: expande en ancho desde la derecha -->
+      <div class="flex items-center overflow-hidden transition-all duration-500"
+        [style.max-width]="probarDiseno ? '600px' : '0px'"
+        [style.opacity]="probarDiseno ? '1' : '0'">
+        <div class="bg-[#F0EFEB] h-6 w-6 rounded-full mx-12"></div>
+
+        <!-- Input oculto para seleccionar archivo -->
+        <input #fileInput type="file" accept="image/*" class="hidden" (change)="onFileSelected($event)">
+
+        <div class="flex flex-col items-center justify-center gap-4">
+
+          <!-- Caja: upload / preview / resultado -->
+          <div class="bg-[#F0EFEB] flex flex-col items-center justify-center overflow-hidden shrink-0 transition-all duration-300"
+            [ngClass]="resultadoUrl ? 'h-72 w-72' : 'h-48 w-48'"
+            [class.cursor-pointer]="!fotoManoPreview && !generando"
+            (click)="!fotoManoPreview && !generando ? abrirSelector() : null">
+
+            <!-- Sin foto: ícono de cámara -->
+            <ng-container *ngIf="!fotoManoPreview && !generando">
+              <img src="assets/icon/camera.png" class="h-18 w-18" alt="">
+              <p class="text-center text-sm mt-2 px-4">Sube una foto de tu mano</p>
+            </ng-container>
+
+            <!-- Preview de la foto subida -->
+            <img *ngIf="fotoManoPreview && !generando && !resultadoUrl"
+              [src]="fotoManoPreview" class="h-full w-full object-cover" alt="Tu mano">
+
+            <!-- Generando... (spinner) -->
+            <ng-container *ngIf="generando">
+              <ion-spinner name="crescent" color="medium"></ion-spinner>
+              <p class="text-xs text-gray-400 mt-3">Generando...</p>
+            </ng-container>
+
+            <!-- Resultado final -->
+            <img *ngIf="resultadoUrl"
+              [src]="resultadoUrl" class="h-full w-full object-cover" alt="Diseño en tu mano">
+          </div>
+
+          <!-- Error -->
+          <p *ngIf="errorGenerar" class="text-red-300 text-xs text-center max-w-48">{{ errorGenerar }}</p>
+
+          <!-- Botón GENERAR (foto lista, aún no generado) -->
+          <button *ngIf="fotoManoPreview && !generando && !resultadoUrl"
+            class="bg-[#F0EFEB] w-42 h-10 font-bold text-[#2f4858] hover:w-48 transition-all"
+            (click)="generar()">
+            GENERAR
+          </button>
+
+          <!-- Botón CAMBIAR FOTO (si ya hay resultado) -->
+          <button *ngIf="resultadoUrl"
+            class="bg-[#F0EFEB] w-42 h-10 font-bold text-[#2f4858] hover:w-48 transition-all"
+            (click)="resetFoto(); abrirSelector()">
+            CAMBIAR FOTO
+          </button>
+
+          <!-- Botón CANCELAR -->
+          <button *ngIf="!generando"
+            class="bg-[#F0EFEB] mt-1 w-42 h-10 font-bold text-[#2f4858] hover:w-48 transition-all opacity-60"
+            (click)="galeriaModal.desactivarProbar()">
+            CANCELAR
+          </button>
+
+        </div>
+      </div>
     </div>
   </div>
 </ion-app>

@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AnimationBuilder, AnimationController } from '@ionic/angular';
 import { filter } from 'rxjs/operators';
+import { GaleriaModalService } from './services/galeria-modal.service';
+import { ReplicateService } from './services/replicate.service';
 
 @Component({
   selector: 'app-root',
@@ -11,13 +13,91 @@ import { filter } from 'rxjs/operators';
 })
 export class AppComponent {
   isHome = true;
+  probarDiseno = false;
 
-  constructor(private animationCtrl: AnimationController, private router : Router) {
+  // Estado del flujo "probar diseño"
+  fotoManoPreview: string | null = null;
+  resultadoUrl: string | null = null;
+  generando = false;
+  errorGenerar: string | null = null;
+  private imagenDiseno: string | null = null;
+
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  constructor(
+    private animationCtrl: AnimationController,
+    private router: Router,
+    public galeriaModal: GaleriaModalService,
+    private replicate: ReplicateService,
+  ) {
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
       this.isHome = e.urlAfterRedirects === '/home' || e.urlAfterRedirects === '/';
     });
+
+    this.galeriaModal.probarDiseno.subscribe(v => {
+      this.probarDiseno = v;
+      if (!v) this.resetFoto();
+    });
+
+    this.galeriaModal.imgSeleccionada$.subscribe(img => {
+      this.imagenDiseno = img;
+      if (!img) this.resetFoto();
+    });
+  }
+
+  abrirSelector() {
+    this.fileInput?.nativeElement.click();
+  }
+
+  onFileSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.resultadoUrl = null;
+    this.errorGenerar = null;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.fotoManoPreview = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  async generar() {
+    if (!this.fotoManoPreview || !this.imagenDiseno) return;
+    this.generando = true;
+    this.resultadoUrl = null;
+    this.errorGenerar = null;
+
+    // Convertir la imagen del diseño a base64 (puede ser asset local)
+    const disenoBase64 = await this.urlABase64(this.imagenDiseno);
+
+    this.replicate.probarDiseno(this.fotoManoPreview, disenoBase64).subscribe({
+      next: (res) => {
+        this.resultadoUrl = res.url;
+        this.generando = false;
+      },
+      error: () => {
+        this.errorGenerar = 'No se pudo generar la imagen. Intenta de nuevo.';
+        this.generando = false;
+      },
+    });
+  }
+
+  resetFoto() {
+    this.fotoManoPreview = null;
+    this.resultadoUrl = null;
+    this.generando = false;
+    this.errorGenerar = null;
+  }
+
+  private urlABase64(url: string): Promise<string> {
+    return fetch(url)
+      .then(r => r.blob())
+      .then(blob => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }));
   }
 
   readonly curtainUpAnimation: AnimationBuilder = (_base, opts) => {

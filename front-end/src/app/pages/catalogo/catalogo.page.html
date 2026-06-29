@@ -1,5 +1,12 @@
-<ion-content [fullscreen]="true" >
+<ion-content [fullscreen]="true">
   <div class="bg-[#F0EFEB] h-full">
-
+    <div class="flex h-full w-full justify-center space-x-16 pt-12">
+      <div *ngFor="let img of galeria"
+        class="bg-red-300 h-98 w-72 cursor-pointer hover:scale-104 transition-all"
+        (click)="abrirImg(img)"
+      >
+        <img [src]="img" class="h-full w-full object-cover" />
+      </div>
+    </div>
   </div>
 </ion-content>
