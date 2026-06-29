@@ -1,17 +1,26 @@
+import dotenv from 'dotenv'
 import { join } from 'path'
 import { createBot, createProvider, createFlow, addKeyword, utils } from '@builderbot/bot'
 import { MemoryDB as Database } from '@builderbot/bot'
 import { BaileysProvider as Provider } from '@builderbot/provider-baileys'
 import { ChatbotApiService } from './services/chatbotApi.js'
 
+dotenv.config()
+
 const PORT = process.env.PORT ?? 3008
-const LARAVEL_API_URL = process.env.LARAVEL_API_URL ?? 'http://localhost:8000/v1'
+const LARAVEL_API_URL = process.env.LARAVEL_API_URL
+
+if (!LARAVEL_API_URL) {
+    throw new Error('LARAVEL_API_URL no está definido. Copia .env.example a .env y configura la URL del backend en el proyecto de WhatsApp.')
+}
+
 const chatbotApi = new ChatbotApiService(LARAVEL_API_URL)
 
 const loadChatbotData = async () => {
     try {
         const data = await chatbotApi.getChatbotData()
         console.log('Chatbot API data loaded', {
+            url: `${LARAVEL_API_URL}/chatbot/preguntas`,
             preguntas: data.preguntas.length,
             servicios: data.servicios.length,
             horarios_disponibles: data.horarios_disponibles.length,
@@ -19,6 +28,7 @@ const loadChatbotData = async () => {
         return data
     } catch (error) {
         console.warn('No se pudo cargar la configuración del chatbot desde la API:', error)
+        console.warn('URL usada:', `${LARAVEL_API_URL}/chatbot/preguntas`)
         return null
     }
 }
@@ -79,12 +89,12 @@ const fullSamplesFlow = addKeyword<Provider, Database>(['samples', utils.setEven
 const main = async () => {
     const chatbotData = await loadChatbotData()
     const adapterFlow = createFlow([welcomeFlow, registerFlow, fullSamplesFlow])
-    
+
     // If you experience ERRO AUTH issues, check the latest WhatsApp version at:
     // https://wppconnect.io/whatsapp-versions/
     // Example: version "2.3000.1035824857-alpha" -> [2, 3000, 1035824857]
-    const adapterProvider = createProvider(Provider, 
-		{ version: [2, 3000, 1035824857] } 
+    const adapterProvider = createProvider(Provider,
+		{ version: [2, 3000, 1035824857] }
 	)
     const adapterDB = new Database()
 

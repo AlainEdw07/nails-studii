@@ -13,7 +13,8 @@
   "keywords": [],
   "dependencies": {
     "@builderbot/bot": "1.4.2",
-    "@builderbot/provider-baileys": "1.4.2"
+    "@builderbot/provider-baileys": "1.4.2",
+    "dotenv": "^16.1.4"
   },
   "devDependencies": {
     "@types/node": "^25.0.0",
