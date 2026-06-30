@@ -15,8 +15,23 @@ class PreguntaChatbotController extends Controller
             ->orderBy('id')
             ->get(['id', 'pregunta', 'opciones_respuesta', 'accion'])
             ->map(function (PreguntaChatbot $pregunta) {
-                if (is_string($pregunta->opciones_respuesta) && $pregunta->opciones_respuesta !== '') {
-                    $pregunta->opciones_respuesta = json_decode($pregunta->opciones_respuesta, true);
+                if (!is_string($pregunta->opciones_respuesta) || $pregunta->opciones_respuesta === '') {
+                    return $pregunta;
+                }
+
+                $decoded = json_decode($pregunta->opciones_respuesta, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $pregunta->opciones_respuesta = $decoded;
+                    return $pregunta;
+                }
+
+                $clean = trim($pregunta->opciones_respuesta);
+                if (str_starts_with($clean, '[') && str_ends_with($clean, ']')) {
+                    $normalized = str_replace("'", '"', $clean);
+                    $decoded = json_decode($normalized, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $pregunta->opciones_respuesta = $decoded;
+                    }
                 }
 
                 return $pregunta;

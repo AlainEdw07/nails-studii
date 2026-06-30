@@ -1,4 +1,4 @@
-import dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
 import { join } from 'path'
 import { createBot, createProvider, createFlow, addKeyword, utils } from '@builderbot/bot'
 import { MemoryDB as Database } from '@builderbot/bot'
@@ -16,9 +16,288 @@ if (!LARAVEL_API_URL) {
 
 const chatbotApi = new ChatbotApiService(LARAVEL_API_URL)
 
+let chatbotData: { preguntas: any[]; servicios: any[]; horarios_disponibles: any[] } | null = null
+
+const findQuestion = (action: string) => {
+    return chatbotData?.preguntas.find((item) => item.accion === action) ?? {
+        pregunta: '',
+        opciones_respuesta: [],
+    }
+}
+
+const renderOptions = (options: any) => {
+    if (!Array.isArray(options) || options.length === 0) {
+        return ''
+    }
+
+    return options
+        .map((option: any, index: number) => {
+            const label = typeof option === 'string' ? option : option?.nombre ?? option?.label ?? JSON.stringify(option)
+            return `${index + 1}. ${label}`
+        })
+        .join('\n')
+}
+
+const timeToMinutes = (time: string) => {
+    const parts = time.split(':').map((s) => parseInt(s, 10))
+    if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return null
+    return parts[0] * 60 + parts[1]
+}
+
+const createCitaFromState = async (state: any) => {
+    const servicioState = state.get('servicio')
+    const fecha = state.get('fecha')
+    const hora = state.get('hora')
+    const nombre = state.get('nombre')
+    const telefono = state.get('telefono')
+    const notas = state.get('notas') || ''
+
+    // Determine servicio_id from chatbotData if possible
+    let servicio_id = null
+    // Prefer servicio_id already stored in state
+    const existingId = state.get && state.get('servicio_id')
+    if (existingId) {
+        servicio_id = existingId
+    }
+    if (chatbotData) {
+        const servicios = chatbotData.servicios
+        if (typeof servicioState === 'string' && servicioState.match(/^\d+$/)) {
+            const idx = parseInt(servicioState, 10) - 1
+            if (servicios[idx]) servicio_id = servicios[idx].id
+        }
+        if (!servicio_id) {
+            const found = servicios.find((s: any) => s.nombre?.toLowerCase() === (servicioState || '').toLowerCase())
+            if (found) servicio_id = found.id
+        }
+    }
+
+    // Fetch latest horarios disponibles and validate selected fecha/hora if provided
+    try {
+        const resp = await fetch(`${LARAVEL_API_URL}/horarios/disponibles`)
+        if (!resp.ok) {
+            return `Error al verificar horarios: código ${resp.status}`
+        }
+        const json = await resp.json()
+        const horarios = json.horarios_disponibles ?? json
+
+        // try to parse fecha to weekday in Spanish
+        let weekday = null
+        const parsed = new Date(fecha)
+        if (!Number.isNaN(parsed.getTime())) {
+            weekday = parsed.toLocaleDateString('es-ES', { weekday: 'long' })
+            // Capitalize first letter to match DB values (e.g., 'Lunes')
+            weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1)
+        }
+
+        if (weekday && hora) {
+            const horaMin = timeToMinutes(hora)
+            if (horaMin === null) {
+                return 'Formato de hora inválido. Usa HH:MM.'
+            }
+            const match = horarios.find((h: any) => {
+                if (h.dia_semana !== weekday) return false
+                const start = timeToMinutes(h.hora_inicio)
+                const end = timeToMinutes(h.hora_fin)
+                return start !== null && end !== null && horaMin >= start && horaMin < end
+            })
+            if (!match) {
+                return 'El horario seleccionado no está disponible. Por favor elige otra fecha u hora.'
+            }
+        }
+    } catch (e) {
+        return `No se pudo verificar horarios: ${e}`
+    }
+
+    // Build payload and create cita
+    const payload: any = {
+        nombre_cliente: nombre || '',
+        telefono: telefono || '',
+        servicio_id: servicio_id,
+        fecha_cita: fecha || '',
+        hora_cita: hora || '',
+        notas_adicionales: notas || '',
+    }
+
+    try {
+        const createResp = await fetch(`${LARAVEL_API_URL}/citas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+        })
+
+        if (!createResp.ok) {
+            const errText = await createResp.text()
+            return `Error al crear la cita: ${createResp.status} ${errText}`
+        }
+
+        const created = await createResp.json()
+        return `✅ Cita creada correctamente. ID: ${created.cita?.id ?? created.id ?? ''}`
+    } catch (e) {
+        return `Error al crear la cita: ${e}`
+    }
+}
+
+const buildChatbotFlows = () => {
+    if (!chatbotData) {
+        const fallbackMenu = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu'])
+            .addAnswer('No se pudo cargar la configuración del chatbot desde el servidor.')
+            .addAnswer('Escribe *recargar* para intentar recargar los datos desde la API o contacta al administrador.')
+
+        return [fallbackMenu]
+    }
+
+    const menuQuestion = findQuestion('menu_principal')
+    const servicesQuestion = findQuestion('listar_servicios')
+    const scheduleQuestion = findQuestion('mostrar_horarios')
+    const requestServiceQuestion = findQuestion('pedir_servicio')
+    const requestDateQuestion = findQuestion('pedir_fecha')
+    const requestTimeQuestion = findQuestion('pedir_hora')
+    const requestNameQuestion = findQuestion('pedir_nombre')
+    const requestPhoneQuestion = findQuestion('pedir_telefono')
+    const requestNotesQuestion = findQuestion('pedir_notas')
+    const confirmQuestion = findQuestion('confirmacion_cita')
+
+    const serviceSelectionFlow = addKeyword<Provider, Database>(['servicios', 'servicio', 'agendar', 'cita', utils.setEvent('SERVICE_SELECTION')])
+        .addAnswer(`${servicesQuestion.pregunta}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios) : 'No hay servicios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { state, gotoFlow }) => {
+            const body = (ctx.body || '').toString().trim()
+            // If user typed a number, map to servicio
+            if (/^\d+$/.test(body)) {
+                const idx = parseInt(body, 10) - 1
+                const servicios = chatbotData!.servicios
+                if (servicios[idx]) {
+                    await state.update({ servicio: servicios[idx].nombre, servicio_id: servicios[idx].id })
+                    return gotoFlow(dateFlow)
+                }
+            }
+
+            // Try to match by name
+            const found = chatbotData!.servicios.find((s: any) => s.nombre?.toLowerCase() === body.toLowerCase())
+            if (found) {
+                await state.update({ servicio: found.nombre, servicio_id: found.id })
+                return gotoFlow(dateFlow)
+            }
+
+            // Fallback: store raw text and proceed
+            await state.update({ servicio: ctx.body })
+            return gotoFlow(dateFlow)
+        })
+
+    const dateFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_DATE'))
+        .addAnswer(requestDateQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
+            await state.update({ fecha: ctx.body })
+            return gotoFlow(timeFlow)
+        })
+
+    const timeFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_TIME'))
+        .addAnswer(requestTimeQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
+            await state.update({ hora: ctx.body })
+            return gotoFlow(nameFlow)
+        })
+
+    const nameFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_NAME'))
+        .addAnswer(requestNameQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
+            await state.update({ nombre: ctx.body })
+            return gotoFlow(phoneFlow)
+        })
+
+    const phoneFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_PHONE'))
+        .addAnswer(requestPhoneQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
+            await state.update({ telefono: ctx.body })
+            return gotoFlow(notesFlow)
+        })
+
+    const notesFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_NOTES'))
+        .addAnswer(requestNotesQuestion.pregunta)
+        .addAnswer(renderOptions(requestNotesQuestion.opciones_respuesta), { capture: true }, async (ctx, { state, gotoFlow }) => {
+            const answer = ctx.body.toLowerCase()
+            if (answer.includes('no') || answer.startsWith('1')) {
+                await state.update({ notas: '' })
+                return gotoFlow(confirmFlow)
+            }
+
+            if (answer.includes('sí') || answer.includes('si') || answer.startsWith('2')) {
+                return gotoFlow(notesTextFlow)
+            }
+
+            return gotoFlow(notesTextFlow)
+        })
+
+    const notesTextFlow = addKeyword<Provider, Database>(utils.setEvent('NOTES_TEXT'))
+        .addAnswer('Escribe tus notas adicionales para la cita.', { capture: true }, async (ctx, { state, gotoFlow }) => {
+            await state.update({ notas: ctx.body })
+            return gotoFlow(confirmFlow)
+        })
+
+    const confirmFlow = addKeyword<Provider, Database>(utils.setEvent('CONFIRM_CITA'))
+        .addAnswer(confirmQuestion.pregunta, {}, async (_, { flowDynamic, state }) => {
+            const service = state.get('servicio') || 'un servicio'
+            const fecha = state.get('fecha') || 'una fecha'
+            const hora = state.get('hora') || 'una hora'
+            const nombre = state.get('nombre') || 'un nombre'
+            const telefono = state.get('telefono') || 'un teléfono'
+            const notas = state.get('notas') || 'sin notas adicionales'
+
+            await flowDynamic(`Resumen:\nServicio: ${service}\nFecha: ${fecha}\nHora: ${hora}\nNombre: ${nombre}\nTeléfono: ${telefono}\nNotas: ${notas}`)
+        })
+        .addAnswer(renderOptions(confirmQuestion.opciones_respuesta), { capture: true }, async (ctx, { gotoFlow, flowDynamic, state }) => {
+            const answer = ctx.body.toLowerCase()
+            // If user wants to see the resumen again
+            if (answer.includes('resumen') || answer.startsWith('1')) {
+                return gotoFlow(confirmFlow)
+            }
+
+            // If user confirms the booking (detect 'confirmar', 'sí' or option 2)
+            if (answer.includes('confirm') || answer.includes('confirmar') || answer.includes('sí') || answer.startsWith('2')) {
+                await flowDynamic('Creando tu cita, un momento...')
+                const result = await createCitaFromState(state)
+                await flowDynamic(result)
+                return gotoFlow(mainMenuFlow)
+            }
+
+            // If user wants to go back to main menu
+            if (answer.includes('volver') || answer.startsWith('3')) {
+                return gotoFlow(mainMenuFlow)
+            }
+
+            return gotoFlow(mainMenuFlow)
+        })
+
+    const scheduleFlow = addKeyword<Provider, Database>(['horarios', 'horario', 'mostrar horarios', 'mostrar horario', utils.setEvent('SCHEDULE_FLOW')])
+        .addAnswer(`${scheduleQuestion.pregunta}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((horario) => ({ nombre: `${horario.dia_semana} ${horario.hora_inicio}-${horario.hora_fin}` }))) : 'No hay horarios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { gotoFlow }) => {
+            const text = (ctx.body || '').toLowerCase()
+            if (text.includes('agendar') || text.includes('cita') || text.startsWith('3')) {
+                return gotoFlow(serviceSelectionFlow)
+            }
+            return gotoFlow(mainMenuFlow)
+        })
+
+    const mainMenuFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu', 'menú'])
+        .addAnswer(menuQuestion.pregunta)
+        .addAnswer(renderOptions(menuQuestion.opciones_respuesta), { capture: true }, async (ctx, { gotoFlow, fallBack }) => {
+            const text = ctx.body.toLowerCase()
+            if (text.includes('servicio') || text.includes('servicios') || text.startsWith('1')) {
+                return gotoFlow(serviceSelectionFlow)
+            }
+            if (text.includes('horario') || text.includes('horarios') || text.startsWith('2')) {
+                return gotoFlow(scheduleFlow)
+            }
+            if (text.includes('agendar') || text.includes('cita') || text.startsWith('3')) {
+                return gotoFlow(serviceSelectionFlow)
+            }
+            if (text.includes('asesor') || text.includes('asesorar') || text.startsWith('4')) {
+                await ctx.reply('Un asesor te atenderá pronto. Mientras tanto, puedes usar el menú principal escribiendo "menu".')
+                return
+            }
+            return fallBack('No entendí tu opción, por favor elige servicios, horarios o agendar una cita.')
+        })
+
+    return [mainMenuFlow, serviceSelectionFlow, scheduleFlow, dateFlow, timeFlow, nameFlow, phoneFlow, notesFlow, notesTextFlow, confirmFlow]
+}
+
 const loadChatbotData = async () => {
     try {
         const data = await chatbotApi.getChatbotData()
+        chatbotData = data
         console.log('Chatbot API data loaded', {
             url: `${LARAVEL_API_URL}/chatbot/preguntas`,
             preguntas: data.preguntas.length,
@@ -47,7 +326,7 @@ const discordFlow = addKeyword<Provider, Database>('doc').addAnswer(
     }
 )
 
-const welcomeFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola'])
+const welcomeFlow = addKeyword<Provider, Database>(['doc', 'help'])
     .addAnswer(`🙌 Hello welcome to this *Chatbot*`)
     .addAnswer(
         [
@@ -86,9 +365,21 @@ const fullSamplesFlow = addKeyword<Provider, Database>(['samples', utils.setEven
         media: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     })
 
+const reloadFlow = addKeyword<Provider, Database>(['recargar', 'reload'])
+    .addAnswer('Intentando recargar la configuración del chatbot desde la API...', {}, async (_, { flowDynamic }) => {
+        const data = await loadChatbotData()
+        if (!data) {
+            await flowDynamic('No se pudo recargar. Verifica que `LARAVEL_API_URL` sea accesible y que el backend esté en ejecución.')
+            return
+        }
+
+        await flowDynamic(`Recargado correctamente. Servicios: ${data.servicios.length}, horarios: ${data.horarios_disponibles.length}`)
+    })
+
 const main = async () => {
-    const chatbotData = await loadChatbotData()
-    const adapterFlow = createFlow([welcomeFlow, registerFlow, fullSamplesFlow])
+    await loadChatbotData()
+    const dynamicFlows = buildChatbotFlows()
+    const adapterFlow = createFlow([welcomeFlow, registerFlow, fullSamplesFlow, reloadFlow, ...dynamicFlows])
 
     // If you experience ERRO AUTH issues, check the latest WhatsApp version at:
     // https://wppconnect.io/whatsapp-versions/

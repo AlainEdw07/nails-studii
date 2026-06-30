@@ -17,7 +17,7 @@ return new class extends Migration
                     'Ver horarios disponibles',
                     'Agendar una cita',
                     'Hablar con un asesor',
-                ]),
+                ], JSON_UNESCAPED_UNICODE),
                 'accion' => 'menu_principal',
             ],
             [
@@ -60,7 +60,7 @@ return new class extends Migration
                 'opciones_respuesta' => json_encode([
                     'No',
                     'Sí, añadir nota',
-                ]),
+                ], JSON_UNESCAPED_UNICODE),
                 'accion' => 'pedir_notas',
             ],
             [
@@ -68,7 +68,7 @@ return new class extends Migration
                 'opciones_respuesta' => json_encode([
                     'Ver resumen',
                     'Volver al menú',
-                ]),
+                ], JSON_UNESCAPED_UNICODE),
                 'accion' => 'confirmacion_cita',
             ],
         ]);
