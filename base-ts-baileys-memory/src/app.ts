@@ -1,4 +1,4 @@
-import * as dotenv from 'dotenv'
+﻿import * as dotenv from 'dotenv'
 import { join } from 'path'
 import { createBot, createProvider, createFlow, addKeyword, utils } from '@builderbot/bot'
 import { MemoryDB as Database } from '@builderbot/bot'
@@ -42,6 +42,54 @@ const timeToMinutes = (time: string) => {
     const parts = time.split(':').map((s) => parseInt(s, 10))
     if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return null
     return parts[0] * 60 + parts[1]
+}
+
+const parseDateInput = (value: string) => {
+    if (!value || typeof value !== 'string') return null
+    const normalized = value.trim().replace(/\s+/g, ' ')
+    let date: Date | null = null
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+        date = new Date(normalized)
+    }
+    else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(normalized)) {
+        const [day, month, year] = normalized.split('/')
+        date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`)
+    }
+    else {
+        date = new Date(normalized)
+    }
+
+    if (!date || Number.isNaN(date.getTime())) return null
+    return date
+}
+
+const formatDateInput = (value: string) => {
+    const date = parseDateInput(value)
+    if (!date) return null
+    return date.toISOString().split('T')[0]
+}
+
+const isDateInFutureOrToday = (date: Date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return date.getTime() >= today.getTime()
+}
+
+const normalizeTimeInput = (value: string) => {
+    if (!value || typeof value !== 'string') return null
+    const trimmed = value.trim()
+    const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(trimmed)
+    return match ? `${match[1].padStart(2, '0')}:${match[2]}` : null
+}
+
+const isValidPhoneNumber = (value: string) => {
+    if (!value || typeof value !== 'string') return false
+    const digits = value.replace(/\D/g, '')
+    return digits.length >= 7 && digits.length <= 15
+}
+
+const isValidName = (value: string) => {
+    return typeof value === 'string' && value.trim().length >= 2
 }
 
 const createCitaFromState = async (state: any) => {
@@ -158,51 +206,75 @@ const buildChatbotFlows = () => {
     const confirmQuestion = findQuestion('confirmacion_cita')
 
     const serviceSelectionFlow = addKeyword<Provider, Database>(['servicios', 'servicio', 'agendar', 'cita', utils.setEvent('SERVICE_SELECTION')])
-        .addAnswer(`${servicesQuestion.pregunta}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios) : 'No hay servicios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { state, gotoFlow }) => {
+        .addAnswer(`${servicesQuestion.pregunta}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios) : 'No hay servicios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
             const body = (ctx.body || '').toString().trim()
-            // If user typed a number, map to servicio
+            const servicios = chatbotData!.servicios
             if (/^\d+$/.test(body)) {
                 const idx = parseInt(body, 10) - 1
-                const servicios = chatbotData!.servicios
                 if (servicios[idx]) {
                     await state.update({ servicio: servicios[idx].nombre, servicio_id: servicios[idx].id })
                     return gotoFlow(dateFlow)
                 }
             }
 
-            // Try to match by name
-            const found = chatbotData!.servicios.find((s: any) => s.nombre?.toLowerCase() === body.toLowerCase())
+            const found = servicios.find((s: any) => s.nombre?.toLowerCase() === body.toLowerCase())
             if (found) {
                 await state.update({ servicio: found.nombre, servicio_id: found.id })
                 return gotoFlow(dateFlow)
             }
 
-            // Fallback: store raw text and proceed
-            await state.update({ servicio: ctx.body })
-            return gotoFlow(dateFlow)
+            await flowDynamic('No entendí el servicio seleccionado. Escribe el número o el nombre del servicio que deseas.')
+            return gotoFlow(serviceSelectionFlow)
         })
 
     const dateFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_DATE'))
-        .addAnswer(requestDateQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
-            await state.update({ fecha: ctx.body })
+        .addAnswer(requestDateQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
+            const fechaRaw = (ctx.body || '').toString().trim()
+            const fechaValid = formatDateInput(fechaRaw)
+            const parsedDate = fechaValid ? parseDateInput(fechaRaw) : null
+            if (!fechaValid || !parsedDate || !isDateInFutureOrToday(parsedDate)) {
+                await flowDynamic('La fecha ingresada no es válida. Por favor ingresa una fecha en formato YYYY-MM-DD o DD/MM/YYYY y que sea hoy o una fecha futura.')
+                return gotoFlow(dateFlow)
+            }
+
+            await state.update({ fecha: fechaValid })
             return gotoFlow(timeFlow)
         })
 
     const timeFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_TIME'))
-        .addAnswer(requestTimeQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
-            await state.update({ hora: ctx.body })
+        .addAnswer(requestTimeQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
+            const horaRaw = (ctx.body || '').toString().trim()
+            const horaValid = normalizeTimeInput(horaRaw)
+            if (!horaValid) {
+                await flowDynamic('La hora ingresada no es válida. Usa el formato HH:MM, por ejemplo 14:30.')
+                return gotoFlow(timeFlow)
+            }
+
+            await state.update({ hora: horaValid })
             return gotoFlow(nameFlow)
         })
 
     const nameFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_NAME'))
-        .addAnswer(requestNameQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
-            await state.update({ nombre: ctx.body })
+        .addAnswer(requestNameQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
+            const nombreRaw = (ctx.body || '').toString().trim()
+            if (!isValidName(nombreRaw)) {
+                await flowDynamic('Por favor ingresa tu nombre completo o un nombre válido para continuar.')
+                return gotoFlow(nameFlow)
+            }
+
+            await state.update({ nombre: nombreRaw })
             return gotoFlow(phoneFlow)
         })
 
     const phoneFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_PHONE'))
-        .addAnswer(requestPhoneQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow }) => {
-            await state.update({ telefono: ctx.body })
+        .addAnswer(requestPhoneQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
+            const telefonoRaw = (ctx.body || '').toString().trim()
+            if (!isValidPhoneNumber(telefonoRaw)) {
+                await flowDynamic('El teléfono ingresado no es válido. Por favor usa solo números y opcionalmente un +, por ejemplo +573001234567.')
+                return gotoFlow(phoneFlow)
+            }
+
+            await state.update({ telefono: telefonoRaw })
             return gotoFlow(notesFlow)
         })
 
@@ -240,13 +312,11 @@ const buildChatbotFlows = () => {
             await flowDynamic(`Resumen:\nServicio: ${service}\nFecha: ${fecha}\nHora: ${hora}\nNombre: ${nombre}\nTeléfono: ${telefono}\nNotas: ${notas}`)
         })
         .addAnswer(renderOptions(confirmQuestion.opciones_respuesta), { capture: true }, async (ctx, { gotoFlow, flowDynamic, state }) => {
-            const answer = ctx.body.toLowerCase()
-            // If user wants to see the resumen again
+            const answer = (ctx.body || '').toString().toLowerCase()
             if (answer.includes('resumen') || answer.startsWith('1')) {
                 return gotoFlow(confirmFlow)
             }
 
-            // If user confirms the booking (detect 'confirmar', 'sí' or option 2)
             if (answer.includes('confirm') || answer.includes('confirmar') || answer.includes('sí') || answer.startsWith('2')) {
                 await flowDynamic('Creando tu cita, un momento...')
                 const result = await createCitaFromState(state)
@@ -254,21 +324,31 @@ const buildChatbotFlows = () => {
                 return gotoFlow(mainMenuFlow)
             }
 
-            // If user wants to go back to main menu
             if (answer.includes('volver') || answer.startsWith('3')) {
                 return gotoFlow(mainMenuFlow)
             }
 
-            return gotoFlow(mainMenuFlow)
+            await flowDynamic('No entendí tu respuesta. Por favor responde con la opción correcta.')
+            return gotoFlow(confirmFlow)
         })
 
     const scheduleFlow = addKeyword<Provider, Database>(['horarios', 'horario', 'mostrar horarios', 'mostrar horario', utils.setEvent('SCHEDULE_FLOW')])
-        .addAnswer(`${scheduleQuestion.pregunta}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((horario) => ({ nombre: `${horario.dia_semana} ${horario.hora_inicio}-${horario.hora_fin}` }))) : 'No hay horarios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { gotoFlow }) => {
-            const text = (ctx.body || '').toLowerCase()
+        .addAnswer(`${scheduleQuestion.pregunta}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((horario) => ({ nombre: `${horario.dia_semana} ${horario.hora_inicio}-${horario.hora_fin}` }))) : 'No hay horarios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { gotoFlow, flowDynamic }) => {
+            const text = (ctx.body || '').toString().trim().toLowerCase()
+            const selectedIndex = /^\s*([0-9]+)\s*$/.exec(text)
+            if (selectedIndex) {
+                const idx = parseInt(selectedIndex[1], 10) - 1
+                const horarios = chatbotData!.horarios_disponibles
+                if (horarios[idx]) {
+                    await flowDynamic(`Perfecto, seleccionaste ${horarios[idx].dia_semana} ${horarios[idx].hora_inicio}-${horarios[idx].hora_fin}. Ahora elige el servicio que deseas reservar.`)
+                    return gotoFlow(serviceSelectionFlow)
+                }
+            }
             if (text.includes('agendar') || text.includes('cita') || text.startsWith('3')) {
                 return gotoFlow(serviceSelectionFlow)
             }
-            return gotoFlow(mainMenuFlow)
+            await flowDynamic('No entendí tu respuesta. Escribe el número del horario que prefieres o escribe "agendar" para iniciar una cita.')
+            return gotoFlow(scheduleFlow)
         })
 
     const mainMenuFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu', 'menú'])
