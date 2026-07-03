@@ -1,14 +1,9 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { ChatbotService, ChatbotOpcion } from 'src/app/services/chatbot.service';
 
 interface Mensaje {
   texto: string;
   esBot: boolean;
-}
-
-interface Opcion {
-  texto: string;
-  respuesta: string;
-  opciones?: Opcion[];
 }
 
 @Component({
@@ -23,8 +18,8 @@ export class ChatbotComponent  implements OnInit {
 
   isOpen = false;
   mensajes: Mensaje[] = [];
-  opcionesActuales: Opcion[] = [];
-  opcionesIniciales: Opcion[] = [
+  opcionesActuales: ChatbotOpcion[] = [];
+  opcionesIniciales: ChatbotOpcion[] = [
     {
       texto: '¿Cuáles son los horarios?',
       respuesta: 'Atendemos de Lunes a Sábado de 9am a 7pm.',
@@ -42,12 +37,13 @@ export class ChatbotComponent  implements OnInit {
       respuesta: 'Puedes agendar tu cita desde la sección "Reservar" en la app.',
     },
   ];
+  saludoInicial = '¡Hola! ¿En que te puedo ayudarte?';
 
   toggleChat(){
     this.isOpen = !this.isOpen;
   }
 
-  constructor() { }
+  constructor(private chatbotService: ChatbotService) { }
 
   private scrollAlFondo() {
     setTimeout(()=>{
@@ -57,16 +53,32 @@ export class ChatbotComponent  implements OnInit {
   }
 
   ngOnInit() {
-    this.mensajes = [{texto: '¡Hola! ¿En que te puedo ayudarte?', esBot: true}];
+    this.mensajes = [{texto: this.saludoInicial, esBot: true}];
     this.opcionesActuales = this.opcionesIniciales;
+    this.cargarConfiguracionChatbot();
     this.scrollAlFondo();
   }
 
-  seleccionarOpcion(opcion: Opcion) {
+  seleccionarOpcion(opcion: ChatbotOpcion) {
     this.mensajes.push({ texto:opcion.texto, esBot: false });
     this.mensajes.push({ texto: opcion.respuesta, esBot: true });
     this.opcionesActuales = opcion.opciones ?? this.opcionesIniciales;
     this.scrollAlFondo();
+  }
+
+  private cargarConfiguracionChatbot() {
+    this.chatbotService.obtenerConfiguracion().subscribe({
+      next: (configuracion) => {
+        this.saludoInicial = configuracion.saludo;
+        this.opcionesIniciales = configuracion.opciones;
+        this.opcionesActuales = configuracion.opciones;
+        this.mensajes = [{ texto: configuracion.saludo, esBot: true }];
+        this.scrollAlFondo();
+      },
+      error: () => {
+        // Se mantiene el flujo local como respaldo para no dejar el chatbot sin respuesta.
+      },
+    });
   }
 
 }

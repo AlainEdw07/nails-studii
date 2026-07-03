@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CitaController;
 use App\Http\Controllers\HorarioDisponibleController;
 use App\Http\Controllers\PreguntaChatbotController;
+use App\Http\Controllers\ReplicateController;
 use App\Http\Controllers\ServicioController;
 use Illuminate\Support\Facades\Route;
 
