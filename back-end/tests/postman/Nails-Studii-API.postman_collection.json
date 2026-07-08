@@ -246,9 +246,486 @@
                         "description": "Obtiene los servicios activos disponibles para agendar citas. No requiere autenticación."
                     },
                     "response": []
+                },
+                {
+                    "name": "Listar servicios (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Listado de servicios exitoso', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye arreglo de servicios', function () {",
+                                    "    pm.expect(response.servicios).to.be.an('array');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/servicios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "servicios"
+                            ]
+                        },
+                        "description": "Obtiene todos los servicios (activos e inactivos). Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crear servicio (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Servicio creado correctamente', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "if (response.servicio && response.servicio.id) {",
+                                    "    pm.environment.set('servicio_id', String(response.servicio.id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"nombre\": \"Manicure clásico\",\n  \"descripcion\": \"Manicure tradicional con esmaltado.\",\n  \"precio\": 250.00,\n  \"duracion_estimada\": 45,\n  \"imagen_principal\": null,\n  \"estado\": \"activo\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/servicios",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "servicios"
+                            ]
+                        },
+                        "description": "Crea un nuevo servicio. Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Ver servicio (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Consulta de servicio exitosa', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye servicio', function () {",
+                                    "    pm.expect(response.servicio).to.be.an('object');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/servicios/{{servicio_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "servicios",
+                                "{{servicio_id}}"
+                            ]
+                        },
+                        "description": "Obtiene un servicio por ID. Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Actualizar servicio (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Servicio actualizado correctamente', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"precio\": 275.00,\n  \"estado\": \"activo\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/servicios/{{servicio_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "servicios",
+                                "{{servicio_id}}"
+                            ]
+                        },
+                        "description": "Actualiza un servicio existente. Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Eliminar servicio (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Servicio eliminado correctamente', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/servicios/{{servicio_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "servicios",
+                                "{{servicio_id}}"
+                            ]
+                        },
+                        "description": "Elimina un servicio por ID. Requiere token JWT de administrador."
+                    },
+                    "response": []
                 }
             ],
-            "description": "Consulta pública de servicios activos del negocio."
+            "description": "Consulta pública de servicios activos y gestión CRUD para administradores."
+        },
+        {
+            "name": "Reseñas",
+            "item": [
+                {
+                    "name": "Listar reseñas (público)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Listado de reseñas exitoso', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye arreglo de resenas', function () {",
+                                    "    pm.expect(response.resenas).to.be.an('array');",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/resenas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resenas"
+                            ]
+                        },
+                        "description": "Obtiene las reseñas aprobadas visibles en el sitio. No requiere autenticación."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crear reseña (público)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Reseña creada correctamente', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "if (response.resena && response.resena.id) {",
+                                    "    pm.environment.set('resena_id', String(response.resena.id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"nombre_cliente\": \"Ana López\",\n  \"comentario\": \"Excelente servicio, muy profesionales.\",\n  \"calificacion\": 5\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/resenas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resenas"
+                            ]
+                        },
+                        "description": "Envía una nueva reseña. Se crea con estado `pendiente` hasta aprobación del administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Listar reseñas (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Listado de reseñas exitoso', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "const response = pm.response.json();",
+                                    "",
+                                    "pm.test('Respuesta incluye arreglo de resenas', function () {",
+                                    "    pm.expect(response.resenas).to.be.an('array');",
+                                    "});",
+                                    "",
+                                    "if (response.resenas && response.resenas.length > 0) {",
+                                    "    pm.environment.set('resena_id', String(response.resenas[0].id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/resenas",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "resenas"
+                            ]
+                        },
+                        "description": "Obtiene todas las reseñas (pendientes, aprobadas y rechazadas). Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Actualizar reseña (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Reseña actualizada correctamente', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"estado_aprobacion\": \"aprobado\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/resenas/{{resena_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "resenas",
+                                "{{resena_id}}"
+                            ]
+                        },
+                        "description": "Actualiza una reseña (por ejemplo, aprobar o rechazar). Requiere token JWT de administrador."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Eliminar reseña (admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Reseña eliminada correctamente', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/admin/resenas/{{resena_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "resenas",
+                                "{{resena_id}}"
+                            ]
+                        },
+                        "description": "Elimina una reseña por ID. Requiere token JWT de administrador."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Reseñas de clientes: consulta pública de aprobadas y moderación para administradores."
         },
         {
             "name": "Horarios Disponibles",

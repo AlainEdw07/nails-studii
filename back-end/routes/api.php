@@ -5,6 +5,7 @@ use App\Http\Controllers\CitaController;
 use App\Http\Controllers\HorarioDisponibleController;
 use App\Http\Controllers\PreguntaChatbotController;
 use App\Http\Controllers\ReplicateController;
+use App\Http\Controllers\ResenaController;
 use App\Http\Controllers\ServicioController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,14 +25,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [ServicioController::class, 'index']);
     });
 
-    Route::prefix('galeria')->group(function () {
-        // Route::get('/', [GaleriaController::class, 'index']);
-        // Route::get('/servicio/{servicio}', [GaleriaController::class, 'porServicio']);
-    });
-
     Route::prefix('resenas')->group(function () {
-        // Route::get('/', [ResenaController::class, 'index']);
-        // Route::post('/', [ResenaController::class, 'store']);
+        Route::get('/', [ResenaController::class, 'index']);
+        Route::post('/', [ResenaController::class, 'store']);
     });
 
     Route::prefix('horarios')->group(function () {
@@ -42,13 +38,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/', [CitaController::class, 'store']);
     });
 
-    Route::prefix('informacion-negocio')->group(function () {
-        // Route::get('/', [InformacionNegocioController::class, 'show']);
-    });
-
     Route::prefix('chatbot')->group(function () {
         Route::get('/preguntas', [PreguntaChatbotController::class, 'index']);
-        // Route::post('/preguntar', [ChatbotController::class, 'preguntar']);
     });
 
     Route::prefix('replicate')->group(function () {
@@ -66,38 +57,25 @@ Route::prefix('v1')->group(function () {
             Route::get('/perfil', [AuthController::class, 'perfil']);
 
             Route::prefix('servicios')->group(function () {
-                // Route::apiResource('/', ServicioController::class);
+                Route::get('/', [ServicioController::class, 'index']);
+                Route::post('/', [ServicioController::class, 'store']);
+                Route::get('/{servicio}', [ServicioController::class, 'show']);
+                Route::match(['put', 'patch'], '/{servicio}', [ServicioController::class, 'update']);
+                Route::delete('/{servicio}', [ServicioController::class, 'destroy']);
             });
 
             Route::prefix('citas')->group(function () {
                 Route::get('/', [CitaController::class, 'index']);
             });
 
-            Route::prefix('galeria')->group(function () {
-                // Route::apiResource('/', GaleriaController::class);
-            });
-
             Route::prefix('resenas')->group(function () {
-                // Route::get('/', [ResenaController::class, 'indexAdmin']);
-                // Route::patch('/{resena}', [ResenaController::class, 'update']);
-                // Route::delete('/{resena}', [ResenaController::class, 'destroy']);
+                Route::get('/', [ResenaController::class, 'indexAdmin']);
+                Route::patch('/{resena}', [ResenaController::class, 'update']);
+                Route::delete('/{resena}', [ResenaController::class, 'destroy']);
             });
 
             Route::prefix('horarios')->group(function () {
                 Route::post('/', [HorarioDisponibleController::class, 'store']);
-            });
-
-            Route::prefix('informacion-negocio')->group(function () {
-                // Route::get('/', [InformacionNegocioController::class, 'show']);
-                // Route::put('/', [InformacionNegocioController::class, 'update']);
-            });
-
-            Route::prefix('preguntas-chatbot')->group(function () {
-                // Route::apiResource('/', PreguntaChatbotController::class);
-            });
-
-            Route::prefix('administradores')->group(function () {
-                // Route::apiResource('/', AdministradorController::class)->except(['store']);
             });
         });
     });
