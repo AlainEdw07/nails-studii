@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 export interface ProbarDisenoResponse {
   status: string;
@@ -9,7 +10,7 @@ export interface ProbarDisenoResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ReplicateService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

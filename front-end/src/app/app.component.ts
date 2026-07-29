@@ -13,6 +13,7 @@ import { ReplicateService } from './services/replicate.service';
 })
 export class AppComponent {
   isHome = true;
+  showAppShell = true;
   probarDiseno = false;
 
   // Estado del flujo "probar diseño"
@@ -33,7 +34,9 @@ export class AppComponent {
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
-      this.isHome = e.urlAfterRedirects === '/home' || e.urlAfterRedirects === '/';
+      const path = e.urlAfterRedirects.split('?')[0].split('#')[0];
+      this.isHome = path === '/home' || path === '/';
+      this.showAppShell = path !== '/login' && !path.startsWith('/admin');
     });
 
     this.galeriaModal.probarDiseno.subscribe(v => {

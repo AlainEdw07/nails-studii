@@ -22,7 +22,15 @@ const routes: Routes = [
   {
     path: 'contactanos',
     loadChildren: () => import('./pages/contactanos/contactanos.module').then( m => m.ContactanosPageModule)
+  },  {
+    path: 'login',
+    loadChildren: () => import('./pages/login/login.module').then( m => m.LoginPageModule)
   },
+  {
+    path: 'admin',
+    loadChildren: () => import('./pages/admin/admin.module').then( m => m.AdminPageModule)
+  },
+
 ];
 
 @NgModule({
