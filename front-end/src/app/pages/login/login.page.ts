@@ -1,7 +1,7 @@
 ﻿import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { AuthService } from 'src/app/services/auth.service';
 
@@ -17,8 +17,18 @@ export class LoginPage {
   contrasena = '';
   errorMessage = '';
   isLoading = false;
+  returnUrl = '/admin';
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private activatedRoute: ActivatedRoute,
+  ) {
+    const queryReturnUrl = this.activatedRoute.snapshot.queryParamMap.get('returnUrl');
+    if (queryReturnUrl) {
+      this.returnUrl = queryReturnUrl;
+    }
+  }
 
   login(): void {
     this.errorMessage = '';
@@ -32,7 +42,7 @@ export class LoginPage {
     this.authService.login(this.correo, this.contrasena).subscribe({
       next: () => {
         this.isLoading = false;
-        this.router.navigate(['/admin']);
+        this.router.navigateByUrl(this.returnUrl);
       },
       error: (error) => {
         this.isLoading = false;

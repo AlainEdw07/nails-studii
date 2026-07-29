@@ -1,13 +1,239 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>admin</ion-title>
+﻿<ion-header translucent>
+  <ion-toolbar class="bg-[#2f4858] text-white">
+    <ion-title>Panel de administración</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="light" (click)="logout()">Cerrar sesión</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">admin</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" class="admin-content">
+  <div class="min-h-screen bg-[#F0EFEB] px-4 py-6 sm:px-8">
+    <div class="mx-auto max-w-7xl space-y-6">
+      <div class="rounded-[36px] border border-[#2f4858]/10 bg-white/90 p-6 shadow-xl backdrop-blur-xl">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-[#2f4858]/70 uppercase tracking-[0.18em] text-xs mb-2">Administración</p>
+            <h2 class="text-3xl font-bold text-[#2f4858]">Control completo del área administrativa</h2>
+            <p class="text-[#2f4858]/70 mt-2 max-w-2xl">Gestiona reseñas, servicios, citas y horarios desde un solo lugar.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <div class="rounded-3xl bg-[#E8F1F4] p-4 text-center">
+              <p class="text-sm text-[#2f4858]/70">Reseñas</p>
+              <p class="text-3xl font-bold text-[#2f4858]">{{ resenas.length }}</p>
+            </div>
+            <div class="rounded-3xl bg-[#E8F1F4] p-4 text-center">
+              <p class="text-sm text-[#2f4858]/70">Servicios</p>
+              <p class="text-3xl font-bold text-[#2f4858]">{{ servicios.length }}</p>
+            </div>
+            <div class="rounded-3xl bg-[#E8F1F4] p-4 text-center">
+              <p class="text-sm text-[#2f4858]/70">Citas</p>
+              <p class="text-3xl font-bold text-[#2f4858]">{{ citas.length }}</p>
+            </div>
+            <div class="rounded-3xl bg-[#E8F1F4] p-4 text-center">
+              <p class="text-sm text-[#2f4858]/70">Horarios</p>
+              <p class="text-3xl font-bold text-[#2f4858]">{{ horarios.length }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-[36px] border border-[#2f4858]/10 bg-white/90 p-6 shadow-xl backdrop-blur-xl">
+        <div class="flex flex-wrap gap-3">
+          <button
+            class="rounded-full border px-5 py-3 text-sm font-semibold transition-all duration-200"
+            [ngClass]="selectedSection === 'resenas' ? 'bg-[#2f4858] text-white border-transparent' : 'bg-white text-[#2f4858] border-[#2f4858]/20'"
+            (click)="setSection('resenas')"
+          >Reseñas</button>
+          <button
+            class="rounded-full border px-5 py-3 text-sm font-semibold transition-all duration-200"
+            [ngClass]="selectedSection === 'servicios' ? 'bg-[#2f4858] text-white border-transparent' : 'bg-white text-[#2f4858] border-[#2f4858]/20'"
+            (click)="setSection('servicios')"
+          >Servicios</button>
+          <button
+            class="rounded-full border px-5 py-3 text-sm font-semibold transition-all duration-200"
+            [ngClass]="selectedSection === 'citas' ? 'bg-[#2f4858] text-white border-transparent' : 'bg-white text-[#2f4858] border-[#2f4858]/20'"
+            (click)="setSection('citas')"
+          >Citas</button>
+          <button
+            class="rounded-full border px-5 py-3 text-sm font-semibold transition-all duration-200"
+            [ngClass]="selectedSection === 'horarios' ? 'bg-[#2f4858] text-white border-transparent' : 'bg-white text-[#2f4858] border-[#2f4858]/20'"
+            (click)="setSection('horarios')"
+          >Horarios</button>
+        </div>
+
+        <div *ngIf="message" class="mt-6 rounded-3xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          {{ message }}
+        </div>
+        <div *ngIf="errorMessage" class="mt-6 rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {{ errorMessage }}
+        </div>
+
+        <div class="mt-6" *ngIf="loadingSection">
+          <ion-spinner name="crescent" class="text-[#2f4858]"></ion-spinner>
+        </div>
+
+        <div class="space-y-6 mt-6">
+          <ng-container *ngIf="selectedSection === 'resenas'">
+            <div *ngIf="!resenas.length" class="rounded-3xl border border-[#2f4858]/10 bg-[#F7FAFB] p-6 text-[#2f4858]/70">
+              No hay reseñas cargadas en este momento.
+            </div>
+            <div class="grid gap-4 lg:grid-cols-2" *ngIf="resenas.length">
+              <div *ngFor="let resena of resenas" class="rounded-[32px] border border-[#2f4858]/10 bg-[#F8FAFB] p-6 shadow-sm">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[#2f4858] font-semibold">{{ resena.nombre_cliente }}</p>
+                    <p class="text-sm text-[#2f4858]/70">{{ resena.fecha | date:'mediumDate' }}</p>
+                  </div>
+                  <span class="rounded-full bg-[#2f4858] px-3 py-1 text-xs font-semibold text-white">{{ resena.estado_aprobacion }}</span>
+                </div>
+                <p class="mt-4 text-[#2f4858]/80">{{ resena.comentario || 'Sin comentario' }}</p>
+                <p class="mt-3 text-sm text-[#2f4858]/70">Calificación: {{ resena.calificacion }} / 5</p>
+                <div class="mt-5 flex flex-wrap gap-2">
+                  <ion-button size="small" fill="solid" color="success" (click)="aprobarResena(resena)">Aprobar</ion-button>
+                  <ion-button size="small" fill="outline" color="medium" (click)="rechazarResena(resena)">Rechazar</ion-button>
+                  <ion-button size="small" fill="clear" color="danger" (click)="eliminarResena(resena)">Eliminar</ion-button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="selectedSection === 'servicios'">
+            <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+              <div class="rounded-[32px] border border-[#2f4858]/10 bg-[#F8FAFB] p-6 shadow-sm">
+                <h3 class="text-xl font-semibold text-[#2f4858]">Servicios activos e inactivos</h3>
+                <div *ngIf="!servicios.length" class="mt-4 text-[#2f4858]/70">No hay servicios registrados.</div>
+                <div class="mt-4 space-y-4" *ngIf="servicios.length">
+                  <div *ngFor="let servicio of servicios" class="rounded-3xl border border-[#2f4858]/10 bg-white p-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h4 class="text-lg font-semibold text-[#2f4858]">{{ servicio.nombre }}</h4>
+                        <p class="text-sm text-[#2f4858]/70">{{ servicio.descripcion || 'Sin descripción' }}</p>
+                      </div>
+                      <span class="rounded-full bg-[#F0EFEB] px-3 py-1 text-sm text-[#2f4858]">{{ servicio.estado }}</span>
+                    </div>
+                    <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                      <p class="text-sm text-[#2f4858]/70">Precio: ${{ servicio.precio ?? '0' }}</p>
+                      <p class="text-sm text-[#2f4858]/70">Duración: {{ servicio.duracion_estimada ?? 'N/A' }} min</p>
+                      <p class="text-sm text-[#2f4858]/70">Imagen: {{ servicio.imagen_principal || 'No aplica' }}</p>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                      <ion-button size="small" fill="solid" color="primary" (click)="cambiarEstadoServicio(servicio)">
+                        {{ servicio.estado === 'activo' ? 'Poner inactivo' : 'Activar' }}
+                      </ion-button>
+                      <ion-button size="small" fill="clear" color="danger" (click)="eliminarServicio(servicio)">Eliminar</ion-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[32px] border border-[#2f4858]/10 bg-[#F8FAFB] p-6 shadow-sm">
+                <h3 class="text-xl font-semibold text-[#2f4858]">Nuevo servicio</h3>
+                <form (ngSubmit)="crearServicio()" class="space-y-4 mt-4">
+                  <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                    <ion-label position="stacked">Nombre</ion-label>
+                    <ion-input type="text" [(ngModel)]="nuevoServicio.nombre" name="nombre"></ion-input>
+                  </ion-item>
+                  <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                    <ion-label position="stacked">Descripción</ion-label>
+                    <ion-input type="text" [(ngModel)]="nuevoServicio.descripcion" name="descripcion"></ion-input>
+                  </ion-item>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                      <ion-label position="stacked">Precio</ion-label>
+                      <ion-input type="number" [(ngModel)]="nuevoServicio.precio" name="precio"></ion-input>
+                    </ion-item>
+                    <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                      <ion-label position="stacked">Duración (min)</ion-label>
+                      <ion-input type="number" [(ngModel)]="nuevoServicio.duracion_estimada" name="duracion_estimada"></ion-input>
+                    </ion-item>
+                  </div>
+                  <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                    <ion-label position="stacked">URL imagen</ion-label>
+                    <ion-input type="text" [(ngModel)]="nuevoServicio.imagen_principal" name="imagen_principal"></ion-input>
+                  </ion-item>
+                  <ion-button expand="block" type="submit" class="rounded-full bg-[#2f4858] text-white">Crear servicio</ion-button>
+                </form>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="selectedSection === 'citas'">
+            <div *ngIf="!citas.length" class="rounded-3xl border border-[#2f4858]/10 bg-[#F7FAFB] p-6 text-[#2f4858]/70">
+              No se han registrado citas aún.
+            </div>
+            <div class="grid gap-4 lg:grid-cols-2" *ngIf="citas.length">
+              <div *ngFor="let cita of citas" class="rounded-3xl border border-[#2f4858]/10 bg-white p-6 shadow-sm">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h4 class="text-lg font-semibold text-[#2f4858]">{{ cita.nombre_cliente }}</h4>
+                    <p class="text-sm text-[#2f4858]/70">{{ cita.servicio?.nombre || 'Servicio no disponible' }}</p>
+                  </div>
+                  <span class="rounded-full bg-[#F0EFEB] px-3 py-1 text-sm text-[#2f4858]">{{ cita.estado || 'pendiente' }}</span>
+                </div>
+                <div class="mt-4 grid gap-2 text-sm text-[#2f4858]/70">
+                  <p>Fecha: {{ cita.fecha_cita }}</p>
+                  <p>Hora: {{ cita.hora_cita }}</p>
+                  <p>Teléfono: {{ cita.telefono || 'No proporcionado' }}</p>
+                  <p>Correo: {{ cita.correo || 'No proporcionado' }}</p>
+                </div>
+                <p class="mt-4 text-[#2f4858]/80">{{ cita.notas_adicionales || 'Sin notas adicionales' }}</p>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="selectedSection === 'horarios'">
+            <div class="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+              <div class="rounded-[32px] border border-[#2f4858]/10 bg-[#F8FAFB] p-6 shadow-sm">
+                <h3 class="text-xl font-semibold text-[#2f4858]">Horarios disponibles</h3>
+                <div *ngIf="!horarios.length" class="mt-4 text-[#2f4858]/70">Aún no hay horarios cargados.</div>
+                <div class="mt-4 space-y-3" *ngIf="horarios.length">
+                  <div *ngFor="let horario of horarios" class="rounded-3xl border border-[#2f4858]/10 bg-white p-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p class="font-semibold text-[#2f4858]">{{ horario.dia_semana }}</p>
+                      <p class="text-sm text-[#2f4858]/70">{{ horario.hora_inicio }} - {{ horario.hora_fin }}</p>
+                    </div>
+                    <span class="rounded-full bg-[#F0EFEB] px-3 py-1 text-sm text-[#2f4858]">{{ horario.activo ? 'Activo' : 'Inactivo' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-[32px] border border-[#2f4858]/10 bg-[#F8FAFB] p-6 shadow-sm">
+                <h3 class="text-xl font-semibold text-[#2f4858]">Agregar horario</h3>
+                <form (ngSubmit)="crearHorario()" class="space-y-4 mt-4">
+                  <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                    <ion-label position="stacked">Día de la semana</ion-label>
+                    <ion-select [(ngModel)]="nuevoHorario.dia_semana" name="dia_semana">
+                      <ion-select-option value="Lunes">Lunes</ion-select-option>
+                      <ion-select-option value="Martes">Martes</ion-select-option>
+                      <ion-select-option value="Miércoles">Miércoles</ion-select-option>
+                      <ion-select-option value="Jueves">Jueves</ion-select-option>
+                      <ion-select-option value="Viernes">Viernes</ion-select-option>
+                      <ion-select-option value="Sábado">Sábado</ion-select-option>
+                      <ion-select-option value="Domingo">Domingo</ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                      <ion-label position="stacked">Hora inicio</ion-label>
+                      <ion-input type="time" [(ngModel)]="nuevoHorario.hora_inicio" name="hora_inicio"></ion-input>
+                    </ion-item>
+                    <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                      <ion-label position="stacked">Hora fin</ion-label>
+                      <ion-input type="time" [(ngModel)]="nuevoHorario.hora_fin" name="hora_fin"></ion-input>
+                    </ion-item>
+                  </div>
+                  <ion-item class="rounded-3xl bg-white border border-[#2f4858]/10">
+                    <ion-label>Activo</ion-label>
+                    <ion-toggle [(ngModel)]="nuevoHorario.activo" name="activo"></ion-toggle>
+                  </ion-item>
+                  <ion-button expand="block" type="submit" class="rounded-full bg-[#2f4858] text-white">Agregar horario</ion-button>
+                </form>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
 </ion-content>

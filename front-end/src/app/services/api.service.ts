@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+﻿import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -32,5 +32,21 @@ export class ApiService {
       `Bearer ${localStorage.getItem('adminToken') ?? ''}`,
     );
     return this.http.post<T>(`${this.apiUrl}${path}`, body, { headers });
+  }
+
+  patchAuthorized<T>(path: string, body: unknown): Observable<T> {
+    const headers = this.defaultHeaders.set(
+      'Authorization',
+      `Bearer ${localStorage.getItem('adminToken') ?? ''}`,
+    );
+    return this.http.patch<T>(`${this.apiUrl}${path}`, body, { headers });
+  }
+
+  deleteAuthorized<T>(path: string): Observable<T> {
+    const headers = this.defaultHeaders.set(
+      'Authorization',
+      `Bearer ${localStorage.getItem('adminToken') ?? ''}`,
+    );
+    return this.http.delete<T>(`${this.apiUrl}${path}`, { headers });
   }
 }
