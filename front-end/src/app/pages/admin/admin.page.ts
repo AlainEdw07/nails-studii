@@ -4,7 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/services/auth.service';
-import { AdminService, CitaAdmin, HorarioDisponible, ResenaAdmin, ServicioAdmin, ServicioCreatePayload } from 'src/app/services/admin.service';
+import {
+  AdminService,
+  CitaAdmin,
+  HorarioDisponible,
+  ResenaAdmin,
+  ServicioAdmin,
+  ServicioCreatePayload,
+} from 'src/app/services/admin.service';
+
+type SectionKey = 'resenas' | 'servicios' | 'citas' | 'horarios';
 
 @Component({
   selector: 'app-admin',
@@ -14,16 +23,34 @@ import { AdminService, CitaAdmin, HorarioDisponible, ResenaAdmin, ServicioAdmin,
   styleUrls: ['./admin.page.scss'],
 })
 export class AdminPage implements OnInit {
-  selectedSection: 'resenas' | 'servicios' | 'citas' | 'horarios' = 'resenas';
+  selectedSection: SectionKey = 'resenas';
   servicios: ServicioAdmin[] = [];
   resenas: ResenaAdmin[] = [];
   citas: CitaAdmin[] = [];
   horarios: HorarioDisponible[] = [];
+
   loadingSection = false;
   message = '';
   errorMessage = '';
 
-  nuevoServicio: ServicioCreatePayload = {
+  serviceSearch = '';
+  reviewSearch = '';
+  citaSearch = '';
+  horarioSearch = '';
+
+  serviceFilter: 'all' | 'activo' | 'inactivo' = 'all';
+  reviewFilter: 'all' | 'pendiente' | 'aprobado' | 'rechazado' = 'all';
+  horarioFilter: 'all' | 'activo' | 'inactivo' = 'all';
+
+  pageSize = 6;
+  currentPage = 1;
+
+  showModal = false;
+  modalType: 'servicio' | 'horario' | null = null;
+  modalMode: 'create' | 'edit' = 'create';
+  activeService: ServicioAdmin | null = null;
+
+  formService: ServicioCreatePayload = {
     nombre: '',
     descripcion: '',
     precio: 0,
@@ -32,7 +59,7 @@ export class AdminPage implements OnInit {
     estado: 'activo',
   };
 
-  nuevoHorario = {
+  formHorario = {
     dia_semana: 'Lunes',
     hora_inicio: '09:00',
     hora_fin: '10:00',
@@ -49,10 +76,11 @@ export class AdminPage implements OnInit {
     this.refreshAllData();
   }
 
-  setSection(section: 'resenas' | 'servicios' | 'citas' | 'horarios') {
+  setSection(section: SectionKey) {
     this.selectedSection = section;
     this.message = '';
     this.errorMessage = '';
+    this.pageReset();
     this.loadSection(section);
   }
 
@@ -63,7 +91,7 @@ export class AdminPage implements OnInit {
     this.loadHorarios();
   }
 
-  loadSection(section: 'resenas' | 'servicios' | 'citas' | 'horarios') {
+  loadSection(section: SectionKey) {
     if (section === 'resenas') {
       this.loadResenas();
     } else if (section === 'servicios') {
@@ -76,101 +104,241 @@ export class AdminPage implements OnInit {
   }
 
   private loadResenas() {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.obtenerResenasAdmin().subscribe({
       next: ({ resenas }) => {
         this.resenas = resenas;
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudieron cargar las reseñas.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
   private loadServicios() {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.obtenerServiciosAdmin().subscribe({
       next: ({ servicios }) => {
         this.servicios = servicios;
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudieron cargar los servicios.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
   private loadCitas() {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.obtenerCitas().subscribe({
       next: ({ citas }) => {
         this.citas = citas;
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudieron cargar las citas.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
   private loadHorarios() {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.obtenerHorarios().subscribe({
       next: ({ horarios_disponibles }) => {
         this.horarios = horarios_disponibles;
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudieron cargar los horarios.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
-  crearServicio() {
+  private startLoading() {
+    this.loadingSection = true;
     this.message = '';
     this.errorMessage = '';
-    if (!this.nuevoServicio.nombre || this.nuevoServicio.precio === null || this.nuevoServicio.duracion_estimada === null) {
-      this.errorMessage = 'Completa el nombre, el precio y la duración del servicio.';
+  }
+
+  private stopLoading() {
+    this.loadingSection = false;
+  }
+
+  openServiceModal(mode: 'create' | 'edit', servicio?: ServicioAdmin) {
+    this.message = '';
+    this.errorMessage = '';
+    this.modalType = 'servicio';
+    this.modalMode = mode;
+    this.showModal = true;
+
+    if (mode === 'edit' && servicio) {
+      this.activeService = servicio;
+      this.formService = {
+        nombre: servicio.nombre,
+        descripcion: servicio.descripcion ?? '',
+        precio: Number(servicio.precio) || 0,
+        duracion_estimada: Number(servicio.duracion_estimada) || 0,
+        imagen_principal: servicio.imagen_principal ?? '',
+        estado: servicio.estado,
+      };
+    } else {
+      this.activeService = null;
+      this.resetServiceForm();
+    }
+  }
+
+  openHorarioModal() {
+    this.message = '';
+    this.errorMessage = '';
+    this.modalType = 'horario';
+    this.modalMode = 'create';
+    this.showModal = true;
+    this.resetHorarioForm();
+  }
+
+  closeModal() {
+    if (this.hasPendingModalChanges()) {
+      return;
+    }
+    this.showModal = false;
+    this.modalType = null;
+    this.modalMode = 'create';
+    this.activeService = null;
+    this.resetServiceForm();
+    this.resetHorarioForm();
+  }
+
+  private hasPendingModalChanges(): boolean {
+    if (!this.showModal || !this.modalType) {
+      return false;
+    }
+
+    if (this.modalType === 'servicio') {
+      if (this.modalMode === 'create') {
+        return (
+          this.formService.nombre !== '' ||
+          this.formService.descripcion !== '' ||
+          Number(this.formService.precio) !== 0 ||
+          Number(this.formService.duracion_estimada) !== 60 ||
+          (this.formService.imagen_principal ?? '') !== '' ||
+          this.formService.estado !== 'activo'
+        );
+      }
+      if (!this.activeService) {
+        return false;
+      }
+      return (
+        this.formService.nombre !== this.activeService.nombre ||
+        (this.formService.descripcion ?? '') !== (this.activeService.descripcion ?? '') ||
+        Number(this.formService.precio) !== Number(this.activeService.precio) ||
+        Number(this.formService.duracion_estimada) !== Number(this.activeService.duracion_estimada) ||
+        (this.formService.imagen_principal ?? '') !== (this.activeService.imagen_principal ?? '') ||
+        this.formService.estado !== this.activeService.estado
+      );
+    }
+
+    if (this.modalType === 'horario') {
+      return (
+        this.formHorario.dia_semana !== 'Lunes' ||
+        this.formHorario.hora_inicio !== '09:00' ||
+        this.formHorario.hora_fin !== '10:00' ||
+        this.formHorario.activo !== true
+      );
+    }
+
+    return false;
+  }
+
+  saveService() {
+    this.message = '';
+    this.errorMessage = '';
+
+    if (!this.formService.nombre || this.formService.precio === null || this.formService.duracion_estimada === null) {
+      this.errorMessage = 'Completa el nombre, precio y duración del servicio.';
       return;
     }
 
     const payload = {
-      ...this.nuevoServicio,
-      precio: Number(this.nuevoServicio.precio),
-      duracion_estimada: Number(this.nuevoServicio.duracion_estimada),
+      ...this.formService,
+      precio: Number(this.formService.precio),
+      duracion_estimada: Number(this.formService.duracion_estimada),
     };
 
-    this.loadingSection = true;
+    this.startLoading();
+
+    if (this.modalMode === 'edit' && this.activeService) {
+      this.adminService.actualizarServicio(this.activeService.id, payload).subscribe({
+        next: () => {
+          this.message = 'Servicio actualizado correctamente.';
+          this.closeModal();
+          this.loadServicios();
+        },
+        error: (error) => {
+          this.errorMessage = error?.error?.mensaje || 'No se pudo actualizar el servicio.';
+          this.stopLoading();
+        },
+      });
+      return;
+    }
+
     this.adminService.crearServicio(payload).subscribe({
       next: () => {
         this.message = 'Servicio creado correctamente.';
-        this.resetNuevoServicio();
+        this.closeModal();
         this.loadServicios();
       },
       error: (error) => {
         this.errorMessage = error?.error?.mensaje || 'No se pudo crear el servicio.';
-        this.loadingSection = false;
+        this.stopLoading();
+      },
+    });
+  }
+
+  saveHorario() {
+    this.message = '';
+    this.errorMessage = '';
+
+    if (!this.formHorario.dia_semana || !this.formHorario.hora_inicio || !this.formHorario.hora_fin) {
+      this.errorMessage = 'Completa todos los campos del horario.';
+      return;
+    }
+
+    if (this.formHorario.hora_fin <= this.formHorario.hora_inicio) {
+      this.errorMessage = 'La hora de fin debe ser posterior a la de inicio.';
+      return;
+    }
+
+    this.startLoading();
+    this.adminService.crearHorario(this.formHorario).subscribe({
+      next: () => {
+        this.message = 'Horario agregado correctamente.';
+        this.closeModal();
+        this.loadHorarios();
+      },
+      error: (error) => {
+        this.errorMessage = error?.error?.mensaje || 'No se pudo crear el horario.';
+        this.stopLoading();
       },
     });
   }
 
   cambiarEstadoServicio(servicio: ServicioAdmin) {
     const nuevoEstado = servicio.estado === 'activo' ? 'inactivo' : 'activo';
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.actualizarServicio(servicio.id, { estado: nuevoEstado }).subscribe({
       next: () => {
         servicio.estado = nuevoEstado;
         this.message = `Servicio ${servicio.nombre} actualizado a ${nuevoEstado}.`;
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudo actualizar el estado del servicio.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
@@ -179,46 +347,46 @@ export class AdminPage implements OnInit {
     if (!confirm(`¿Eliminar servicio ${servicio.nombre}?`)) {
       return;
     }
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.eliminarServicio(servicio.id).subscribe({
       next: () => {
         this.message = 'Servicio eliminado correctamente.';
         this.servicios = this.servicios.filter((item) => item.id !== servicio.id);
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudo eliminar el servicio.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
   aprobarResena(resena: ResenaAdmin) {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.actualizarResena(resena.id, { estado_aprobacion: 'aprobado' }).subscribe({
       next: () => {
         resena.estado_aprobacion = 'aprobado';
         this.message = 'Reseña aprobada correctamente.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudo aprobar la reseña.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
 
   rechazarResena(resena: ResenaAdmin) {
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.actualizarResena(resena.id, { estado_aprobacion: 'rechazado' }).subscribe({
       next: () => {
         resena.estado_aprobacion = 'rechazado';
         this.message = 'Reseña rechazada correctamente.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudo rechazar la reseña.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
@@ -227,42 +395,16 @@ export class AdminPage implements OnInit {
     if (!confirm(`¿Eliminar reseña de ${resena.nombre_cliente}?`)) {
       return;
     }
-    this.loadingSection = true;
+    this.startLoading();
     this.adminService.eliminarResena(resena.id).subscribe({
       next: () => {
         this.message = 'Reseña eliminada correctamente.';
         this.resenas = this.resenas.filter((item) => item.id !== resena.id);
-        this.loadingSection = false;
+        this.stopLoading();
       },
       error: () => {
         this.errorMessage = 'No se pudo eliminar la reseña.';
-        this.loadingSection = false;
-      },
-    });
-  }
-
-  crearHorario() {
-    this.message = '';
-    this.errorMessage = '';
-    if (!this.nuevoHorario.dia_semana || !this.nuevoHorario.hora_inicio || !this.nuevoHorario.hora_fin) {
-      this.errorMessage = 'Completa todos los campos del horario.';
-      return;
-    }
-    if (this.nuevoHorario.hora_fin <= this.nuevoHorario.hora_inicio) {
-      this.errorMessage = 'La hora de fin debe ser posterior a la de inicio.';
-      return;
-    }
-
-    this.loadingSection = true;
-    this.adminService.crearHorario(this.nuevoHorario).subscribe({
-      next: () => {
-        this.message = 'Horario agregado correctamente.';
-        this.resetNuevoHorario();
-        this.loadHorarios();
-      },
-      error: (error) => {
-        this.errorMessage = error?.error?.mensaje || 'No se pudo crear el horario.';
-        this.loadingSection = false;
+        this.stopLoading();
       },
     });
   }
@@ -272,8 +414,8 @@ export class AdminPage implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  private resetNuevoServicio() {
-    this.nuevoServicio = {
+  resetServiceForm() {
+    this.formService = {
       nombre: '',
       descripcion: '',
       precio: 0,
@@ -283,12 +425,141 @@ export class AdminPage implements OnInit {
     };
   }
 
-  private resetNuevoHorario() {
-    this.nuevoHorario = {
+  resetHorarioForm() {
+    this.formHorario = {
       dia_semana: 'Lunes',
       hora_inicio: '09:00',
       hora_fin: '10:00',
       activo: true,
+    };
+  }
+
+  pageReset() {
+    this.currentPage = 1;
+  }
+
+  changePage(step: number) {
+    const next = this.currentPage + step;
+    this.currentPage = Math.min(Math.max(next, 1), this.totalPages);
+  }
+
+  get filteredResenas() {
+    const query = this.reviewSearch.trim().toLowerCase();
+    return this.resenas
+      .filter((item) => {
+        if (this.reviewFilter !== 'all' && item.estado_aprobacion !== this.reviewFilter) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return (
+          item.nombre_cliente.toLowerCase().includes(query) ||
+          item.comentario?.toLowerCase().includes(query) ||
+          item.estado_aprobacion.toLowerCase().includes(query)
+        );
+      })
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }
+
+  get filteredServicios() {
+    const query = this.serviceSearch.trim().toLowerCase();
+    return this.servicios.filter((item) => {
+      if (this.serviceFilter !== 'all' && item.estado !== this.serviceFilter) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      return (
+        item.nombre.toLowerCase().includes(query) ||
+        item.descripcion?.toLowerCase().includes(query) ||
+        String(item.precio).toLowerCase().includes(query)
+      );
+    });
+  }
+
+  get filteredCitas() {
+    const query = this.citaSearch.trim().toLowerCase();
+    return this.citas.filter((item) => {
+      if (!query) {
+        return true;
+      }
+      return (
+        item.nombre_cliente.toLowerCase().includes(query) ||
+        item.servicio?.nombre.toLowerCase().includes(query) ||
+        item.correo?.toLowerCase().includes(query) ||
+        item.telefono?.toLowerCase().includes(query)
+      );
+    });
+  }
+
+  get filteredHorarios() {
+    const query = this.horarioSearch.trim().toLowerCase();
+    return this.horarios.filter((item) => {
+      if (this.horarioFilter !== 'all') {
+        const expected = this.horarioFilter === 'activo';
+        if (item.activo !== expected) {
+          return false;
+        }
+      }
+      if (!query) {
+        return true;
+      }
+      return (
+        item.dia_semana.toLowerCase().includes(query) ||
+        item.hora_inicio.includes(query) ||
+        item.hora_fin.includes(query)
+      );
+    });
+  }
+
+  get pagedResenas() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredResenas.slice(start, start + this.pageSize);
+  }
+
+  get pagedServicios() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredServicios.slice(start, start + this.pageSize);
+  }
+
+  get pagedCitas() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredCitas.slice(start, start + this.pageSize);
+  }
+
+  get pagedHorarios() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredHorarios.slice(start, start + this.pageSize);
+  }
+
+  get totalPages() {
+    const length =
+      this.selectedSection === 'resenas'
+        ? this.filteredResenas.length
+        : this.selectedSection === 'servicios'
+        ? this.filteredServicios.length
+        : this.selectedSection === 'citas'
+        ? this.filteredCitas.length
+        : this.filteredHorarios.length;
+    return Math.max(Math.ceil(length / this.pageSize), 1);
+  }
+
+  getBadgeClass(status: string) {
+    return {
+      'admin-badge-soft': true,
+      'badge-approved': status === 'aprobado',
+      'badge-pending': status === 'pendiente',
+      'badge-rejected': status === 'rechazado',
+    };
+  }
+
+  getServiceBadgeClass(status: string) {
+    return {
+      'badge-soft': true,
+      'badge-active': status === 'activo',
+      'badge-inactive': status === 'inactivo',
     };
   }
 }
