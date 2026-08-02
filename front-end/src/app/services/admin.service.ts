@@ -98,4 +98,8 @@ export class AdminService {
   crearHorario(datos: { dia_semana: string; hora_inicio: string; hora_fin: string; activo?: boolean }) {
     return this.api.postAuthorized('/admin/horarios', datos);
   }
+
+  actualizarHorario(id: number, datos: { hora_inicio: string; hora_fin: string; activo?: boolean }) {
+    return this.api.patchAuthorized(`/admin/horarios/${id}`, datos);
+  }
 }

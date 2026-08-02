@@ -261,10 +261,11 @@
             <p class='section-title'>Horarios</p>
             <p class='section-note'>Agregar disponibilidad con rapidez sin salir de la vista principal.</p>
           </div>
-          <ion-button fill='solid' color='primary' class='primary-action' (click)='openHorarioModal()'>
+          <ion-button fill='solid' color='primary' class='primary-action' disabled>
             <ion-icon slot='start' name='add-circle-outline'></ion-icon>
             Agregar horario
           </ion-button>
+          <p class='admin-note'>Solo se puede editar un horario existente por día. Usa la tabla para seleccionar y modificar el día deseado.</p>
         </div>
 
         <div class='list-tools'>
@@ -292,7 +293,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor='let horario of pagedHorarios'>
+                <tr *ngFor='let horario of pagedHorarios' class='clickable-row' (click)='openHorarioModal(horario)'>
                   <td><strong>{{ horario.dia_semana }}</strong></td>
                   <td>{{ horario.hora_inicio }} - {{ horario.hora_fin }}</td>
                   <td><span [ngClass]='getServiceBadgeClass(horario.activo ? "activo" : "inactivo")'>{{ horario.activo ? 'Activo' : 'Inactivo' }}</span></td>
@@ -321,7 +322,11 @@
     <div class='admin-modal-top'>
       <div>
         <span class='admin-modal-caption'>{{ modalType === 'servicio' ? 'Servicios' : 'Horarios' }}</span>
-        <h2>{{ modalType === 'servicio' ? (modalMode === 'create' ? 'Nuevo servicio' : 'Editar servicio') : 'Agregar horario' }}</h2>
+        <h2>
+          {{ modalType === 'servicio'
+            ? (modalMode === 'create' ? 'Nuevo servicio' : 'Editar servicio')
+            : (modalMode === 'edit' ? 'Editar horario' : 'Agregar horario') }}
+        </h2>
       </div>
       <button class='admin-modal-close' type='button' (click)='closeModal()'>
         <ion-icon name='close-outline'></ion-icon>
@@ -364,15 +369,7 @@
       <div *ngIf='modalType === "horario"'>
         <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
           <ion-label>Día de la semana</ion-label>
-          <ion-select [(ngModel)]='formHorario.dia_semana' name='modalDiaSemana'>
-            <ion-select-option value='Lunes'>Lunes</ion-select-option>
-            <ion-select-option value='Martes'>Martes</ion-select-option>
-            <ion-select-option value='Miércoles'>Miércoles</ion-select-option>
-            <ion-select-option value='Jueves'>Jueves</ion-select-option>
-            <ion-select-option value='Viernes'>Viernes</ion-select-option>
-            <ion-select-option value='Sábado'>Sábado</ion-select-option>
-            <ion-select-option value='Domingo'>Domingo</ion-select-option>
-          </ion-select>
+          <ion-input type='text' [value]='formHorario.dia_semana' disabled></ion-input>
         </ion-item>
         <div class='grid gap-4 sm:grid-cols-2'>
           <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>

@@ -18,7 +18,7 @@ return new class extends Migration
                 'Viernes',
                 'Sábado',
                 'Domingo',
-            ]);
+            ])->unique();
             $table->time('hora_inicio');
             $table->time('hora_fin');
             $table->boolean('activo')->default(true);

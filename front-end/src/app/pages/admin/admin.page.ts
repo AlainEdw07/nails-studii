@@ -49,6 +49,7 @@ export class AdminPage implements OnInit {
   modalType: 'servicio' | 'horario' | null = null;
   modalMode: 'create' | 'edit' = 'create';
   activeService: ServicioAdmin | null = null;
+  activeHorario: HorarioDisponible | null = null;
 
   formService: ServicioCreatePayload = {
     nombre: '',
@@ -192,13 +193,19 @@ export class AdminPage implements OnInit {
     }
   }
 
-  openHorarioModal() {
+  openHorarioModal(horario: HorarioDisponible) {
     this.message = '';
     this.errorMessage = '';
     this.modalType = 'horario';
-    this.modalMode = 'create';
+    this.modalMode = 'edit';
+    this.activeHorario = horario;
     this.showModal = true;
-    this.resetHorarioForm();
+    this.formHorario = {
+      dia_semana: horario.dia_semana,
+      hora_inicio: horario.hora_inicio.slice(0, 5),
+      hora_fin: horario.hora_fin.slice(0, 5),
+      activo: horario.activo,
+    };
   }
 
   closeModal() {
@@ -209,6 +216,7 @@ export class AdminPage implements OnInit {
     this.modalType = null;
     this.modalMode = 'create';
     this.activeService = null;
+    this.activeHorario = null;
     this.resetServiceForm();
     this.resetHorarioForm();
   }
@@ -243,11 +251,20 @@ export class AdminPage implements OnInit {
     }
 
     if (this.modalType === 'horario') {
+      if (!this.activeHorario) {
+        return (
+          this.formHorario.dia_semana !== 'Lunes' ||
+          this.formHorario.hora_inicio !== '09:00' ||
+          this.formHorario.hora_fin !== '10:00' ||
+          this.formHorario.activo !== true
+        );
+      }
+
       return (
-        this.formHorario.dia_semana !== 'Lunes' ||
-        this.formHorario.hora_inicio !== '09:00' ||
-        this.formHorario.hora_fin !== '10:00' ||
-        this.formHorario.activo !== true
+        this.formHorario.dia_semana !== this.activeHorario.dia_semana ||
+        this.formHorario.hora_inicio !== this.activeHorario.hora_inicio.slice(0, 5) ||
+        this.formHorario.hora_fin !== this.activeHorario.hora_fin.slice(0, 5) ||
+        this.formHorario.activo !== this.activeHorario.activo
       );
     }
 
@@ -313,15 +330,24 @@ export class AdminPage implements OnInit {
       return;
     }
 
+    if (!this.activeHorario) {
+      this.errorMessage = 'Selecciona un horario para editar.';
+      return;
+    }
+
     this.startLoading();
-    this.adminService.crearHorario(this.formHorario).subscribe({
+    this.adminService.actualizarHorario(this.activeHorario.id, {
+      hora_inicio: this.formHorario.hora_inicio,
+      hora_fin: this.formHorario.hora_fin,
+      activo: this.formHorario.activo,
+    }).subscribe({
       next: () => {
-        this.message = 'Horario agregado correctamente.';
+        this.message = 'Horario actualizado correctamente.';
         this.closeModal();
         this.loadHorarios();
       },
       error: (error) => {
-        this.errorMessage = error?.error?.mensaje || 'No se pudo crear el horario.';
+        this.errorMessage = error?.error?.mensaje || 'No se pudo actualizar el horario.';
         this.stopLoading();
       },
     });

@@ -5,3 +5,17 @@ ion-content {
 .admin-content {
   min-height: 100vh;
 }
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background: rgba(47, 72, 88, 0.05);
+}
+
+.admin-note {
+  margin-top: 0.75rem;
+  font-size: 0.92rem;
+  color: rgba(0, 0, 0, 0.65);
+}

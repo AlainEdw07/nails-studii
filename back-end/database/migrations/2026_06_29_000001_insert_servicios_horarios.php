@@ -51,19 +51,15 @@ return new class extends Migration
             ],
         ]);
 
-        // Insert sample horarios disponibles (varios días y franjas)
+        // Insert sample horarios disponibles (un registro por cada día de la semana)
         DB::table('horarios_disponibles')->insert([
-            ['dia_semana' => 'Lunes', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
-            ['dia_semana' => 'Lunes', 'hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'activo' => true],
-            ['dia_semana' => 'Martes', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
-            ['dia_semana' => 'Martes', 'hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'activo' => true],
-            ['dia_semana' => 'Miércoles', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
-            ['dia_semana' => 'Miércoles', 'hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'activo' => true],
-            ['dia_semana' => 'Jueves', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
-            ['dia_semana' => 'Jueves', 'hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'activo' => true],
-            ['dia_semana' => 'Viernes', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
-            ['dia_semana' => 'Viernes', 'hora_inicio' => '14:00:00', 'hora_fin' => '18:00:00', 'activo' => true],
-            ['dia_semana' => 'Sábado', 'hora_inicio' => '09:00:00', 'hora_fin' => '13:00:00', 'activo' => true],
+            ['dia_semana' => 'Lunes', 'hora_inicio' => '09:00:00', 'hora_fin' => '17:00:00', 'activo' => true],
+            ['dia_semana' => 'Martes', 'hora_inicio' => '09:00:00', 'hora_fin' => '17:00:00', 'activo' => true],
+            ['dia_semana' => 'Miércoles', 'hora_inicio' => '09:00:00', 'hora_fin' => '17:00:00', 'activo' => true],
+            ['dia_semana' => 'Jueves', 'hora_inicio' => '09:00:00', 'hora_fin' => '17:00:00', 'activo' => true],
+            ['dia_semana' => 'Viernes', 'hora_inicio' => '09:00:00', 'hora_fin' => '17:00:00', 'activo' => true],
+            ['dia_semana' => 'Sábado', 'hora_inicio' => '10:00:00', 'hora_fin' => '15:00:00', 'activo' => true],
+            ['dia_semana' => 'Domingo', 'hora_inicio' => '00:00:00', 'hora_fin' => '00:00:00', 'activo' => false],
         ]);
     }
 
@@ -76,6 +72,6 @@ return new class extends Migration
             'Extensión de uñas acrílicas',
         ])->delete();
 
-        DB::table('horarios_disponibles')->whereIn('dia_semana', ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'])->delete();
+        DB::table('horarios_disponibles')->whereIn('dia_semana', ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'])->delete();
     }
 };
