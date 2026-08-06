@@ -1,0 +1,43 @@
+﻿<ion-content [fullscreen]="true">
+  <div class="bg-[#F0EFEB] min-h-full flex items-center justify-center p-6">
+    <div class="w-full max-w-lg rounded-[36px] border border-[#2f4858]/10 bg-white/90 p-8 shadow-xl backdrop-blur-xl">
+      <h1 class="text-[#2f4858] text-3xl font-bold tracking-[0.12em] uppercase mb-2">Iniciar sesión</h1>
+      <p class="text-[#2f4858]/70 mb-8">Accede al panel de administración para gestionar reservas, reseñas y servicios.</p>
+
+      <form (ngSubmit)="login()" class="space-y-4">
+        <ion-item class="rounded-[28px] bg-[#F0EFEB] border border-[#2f4858]/20">
+          <ion-label position="floating">Correo</ion-label>
+          <ion-input
+            type="email"
+            [(ngModel)]="correo"
+            name="correo"
+            required
+            autocomplete="email"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item class="rounded-[28px] bg-[#F0EFEB] border border-[#2f4858]/20">
+          <ion-label position="floating">Contraseña</ion-label>
+          <ion-input
+            type="password"
+            [(ngModel)]="contrasena"
+            name="contrasena"
+            required
+            autocomplete="current-password"
+          ></ion-input>
+        </ion-item>
+
+        <p *ngIf="errorMessage" class="text-sm text-red-500">{{ errorMessage }}</p>
+
+        <ion-button
+          expand="block"
+          type="submit"
+          [disabled]="isLoading"
+          class="rounded-full bg-[#2f4858] text-white h-12"
+        >
+          {{ isLoading ? 'Espere...' : 'Entrar' }}
+        </ion-button>
+      </form>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,396 @@
+﻿<ion-header translucent>
+  <ion-toolbar class='admin-toolbar'>
+    <ion-title>Administración</ion-title>
+    <ion-buttons slot='end'>
+      <ion-button fill='clear' color='medium' (click)='logout()'>Cerrar sesión</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]='true' class='admin-content'>
+  <div class='admin-shell'>
+    <section class='admin-hero-card'>
+      <div class='hero-copy'>
+        <span class='hero-chip'>Administración</span>
+        <h1>Control elegante para Nails Studio</h1>
+        <p>Gestiona reseñas, servicios, citas y horarios.</p>
+      </div>
+
+      <div class='summary-grid'>
+        <div class='summary-card'>
+          <span>Reseñas</span>
+          <strong>{{ resenas.length }}</strong>
+        </div>
+        <div class='summary-card'>
+          <span>Servicios</span>
+          <strong>{{ servicios.length }}</strong>
+        </div>
+        <div class='summary-card'>
+          <span>Citas</span>
+          <strong>{{ citas.length }}</strong>
+        </div>
+        <div class='summary-card'>
+          <span>Horarios</span>
+          <strong>{{ horarios.length }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class='section-switcher'>
+      <button class='section-pill' [class.active]='selectedSection === "resenas"' (click)='setSection("resenas")'>Reseñas</button>
+      <button class='section-pill' [class.active]='selectedSection === "servicios"' (click)='setSection("servicios")'>Servicios</button>
+      <button class='section-pill' [class.active]='selectedSection === "citas"' (click)='setSection("citas")'>Citas</button>
+      <button class='section-pill' [class.active]='selectedSection === "horarios"' (click)='setSection("horarios")'>Horarios</button>
+    </div>
+
+    <div class='content-card'>
+      <div *ngIf='message || errorMessage' class='status-row'>
+        <div *ngIf='message' class='status status-success'>{{ message }}</div>
+        <div *ngIf='errorMessage' class='status status-error'>{{ errorMessage }}</div>
+      </div>
+
+      <div *ngIf='loadingSection' class='loading-panel'>
+        <ion-spinner name='crescent' class='spinner'></ion-spinner>
+      </div>
+
+      <ng-container *ngIf='selectedSection === "resenas"'>
+        <div class='section-actions'>
+          <div>
+            <p class='section-title'>Reseñas</p>
+            <p class='section-note'>Aprobar y moderar opiniones desde un panel relajado, sin distracciones.</p>
+          </div>
+        </div>
+
+        <div class='list-tools'>
+          <ion-item lines='none' class='search-input'>
+            <ion-icon slot='start' name='search-outline'></ion-icon>
+            <ion-input placeholder='Buscar reseñas' [(ngModel)]='reviewSearch' (ngModelChange)='pageReset()'></ion-input>
+          </ion-item>
+          <ion-segment [(ngModel)]='reviewFilter' (ionChange)='pageReset()' class='filter-segment'>
+            <ion-segment-button value='all'>Todas</ion-segment-button>
+            <ion-segment-button value='pendiente'>Pendientes</ion-segment-button>
+            <ion-segment-button value='aprobado'>Aprobadas</ion-segment-button>
+            <ion-segment-button value='rechazado'>Rechazadas</ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div *ngIf='!filteredResenas.length' class='empty-state'>No hay reseñas que coincidan con los filtros.</div>
+
+        <div *ngIf='filteredResenas.length' class='table-panel'>
+          <div class='table-responsive'>
+            <table class='admin-table'>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Comentario</th>
+                  <th>Calificación</th>
+                  <th>Estado</th>
+                  <th class='actions-cell'>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor='let resena of pagedResenas'>
+                  <td>
+                    <strong>{{ resena.nombre_cliente }}</strong>
+                    <span class='admin-text-muted'>{{ resena.fecha | date:'mediumDate' }}</span>
+                  </td>
+                  <td>{{ resena.comentario || 'Sin comentario' }}</td>
+                  <td>{{ resena.calificacion }} / 5</td>
+                  <td><span [ngClass]='getBadgeClass(resena.estado_aprobacion)'>{{ resena.estado_aprobacion }}</span></td>
+                  <td class='actions-cell'>
+                    <div class='action-buttons'>
+                      <ion-button size='small' fill='outline' color='success' (click)='aprobarResena(resena)'>Aprobar</ion-button>
+                      <ion-button size='small' fill='outline' color='medium' (click)='rechazarResena(resena)'>Rechazar</ion-button>
+                      <ion-button size='small' fill='clear' color='danger' (click)='eliminarResena(resena)'>Eliminar</ion-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class='pagination-bar' *ngIf='totalPages > 1'>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === 1' (click)='changePage(-1)'>
+              <ion-icon slot='start' name='chevron-back-outline'></ion-icon>Anterior
+            </ion-button>
+            <span>Página {{ currentPage }} / {{ totalPages }}</span>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === totalPages' (click)='changePage(1)'>
+              Siguiente<ion-icon slot='end' name='chevron-forward-outline'></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf='selectedSection === "servicios"'>
+        <div class='section-actions'>
+          <div>
+            <p class='section-title'>Servicios</p>
+            <p class='section-note'>Crea y ajusta servicios sin perder el contexto del panel.</p>
+          </div>
+          <ion-button fill='solid' color='primary' class='primary-action' (click)='openServiceModal("create")'>
+            <ion-icon slot='start' name='add-circle-outline'></ion-icon>
+            Nuevo servicio
+          </ion-button>
+        </div>
+
+        <div class='list-tools'>
+          <ion-item lines='none' class='search-input'>
+            <ion-icon slot='start' name='search-outline'></ion-icon>
+            <ion-input placeholder='Buscar servicios' [(ngModel)]='serviceSearch' (ngModelChange)='pageReset()'></ion-input>
+          </ion-item>
+          <ion-segment [(ngModel)]='serviceFilter' (ionChange)='pageReset()' class='filter-segment'>
+            <ion-segment-button value='all'>Todos</ion-segment-button>
+            <ion-segment-button value='activo'>Activos</ion-segment-button>
+            <ion-segment-button value='inactivo'>Inactivos</ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div *ngIf='!filteredServicios.length' class='empty-state'>No se encontraron servicios con ese criterio.</div>
+
+        <div *ngIf='filteredServicios.length' class='table-panel'>
+          <div class='table-responsive'>
+            <table class='admin-table'>
+              <thead>
+                <tr>
+                  <th>Servicio</th>
+                  <th>Precio</th>
+                  <th>Duración</th>
+                  <th>Estado</th>
+                  <th class='actions-cell'>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor='let servicio of pagedServicios'>
+                  <td>
+                    <strong>{{ servicio.nombre }}</strong>
+                    <div class='admin-text-muted'>{{ servicio.descripcion || 'Sin descripción' }}</div>
+                  </td>
+                  <td>${{ servicio.precio ?? '0' }}</td>
+                  <td>{{ servicio.duracion_estimada ?? 'N/A' }} min</td>
+                  <td><span [ngClass]='getServiceBadgeClass(servicio.estado)'>{{ servicio.estado }}</span></td>
+                  <td class='actions-cell'>
+                    <div class='action-buttons'>
+                      <ion-button size='small' fill='outline' color='primary' (click)='openServiceModal("edit", servicio)'>
+                        <ion-icon slot='start' name='pencil-outline'></ion-icon>Editar
+                      </ion-button>
+                      <ion-button size='small' fill='outline' color='tertiary' (click)='cambiarEstadoServicio(servicio)'>
+                        {{ servicio.estado === 'activo' ? 'Inactivar' : 'Activar' }}
+                      </ion-button>
+                      <ion-button size='small' fill='clear' color='danger' (click)='eliminarServicio(servicio)'>Eliminar</ion-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class='pagination-bar' *ngIf='totalPages > 1'>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === 1' (click)='changePage(-1)'>
+              <ion-icon slot='start' name='chevron-back-outline'></ion-icon>Anterior
+            </ion-button>
+            <span>Página {{ currentPage }} / {{ totalPages }}</span>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === totalPages' (click)='changePage(1)'>
+              Siguiente<ion-icon slot='end' name='chevron-forward-outline'></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf='selectedSection === "citas"'>
+        <div class='section-actions'>
+          <div>
+            <p class='section-title'>Citas</p>
+            <p class='section-note'>Revisa los detalles y estados de las reservas desde un tablero claro y limpio.</p>
+          </div>
+        </div>
+
+        <div class='list-tools'>
+          <ion-item lines='none' class='search-input'>
+            <ion-icon slot='start' name='search-outline'></ion-icon>
+            <ion-input placeholder='Buscar citas' [(ngModel)]='citaSearch' (ngModelChange)='pageReset()'></ion-input>
+          </ion-item>
+        </div>
+
+        <div *ngIf='!filteredCitas.length' class='empty-state'>No hay citas que coincidan con la búsqueda.</div>
+
+        <div *ngIf='filteredCitas.length' class='table-panel'>
+          <div class='table-responsive'>
+            <table class='admin-table'>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th>Fecha</th>
+                  <th>Contacto</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor='let cita of pagedCitas'>
+                  <td>
+                    <strong>{{ cita.nombre_cliente }}</strong>
+                    <div class='admin-text-muted'>{{ cita.notas_adicionales || 'Sin notas' }}</div>
+                  </td>
+                  <td>{{ cita.servicio?.nombre || 'No disponible' }}</td>
+                  <td>{{ cita.fecha_cita }} · {{ cita.hora_cita }}</td>
+                  <td>
+                    <div>{{ cita.correo || 'No registrado' }}</div>
+                    <div>{{ cita.telefono || 'No registrado' }}</div>
+                  </td>
+                  <td><span class='admin-badge-soft badge-pending'>{{ cita.estado || 'pendiente' }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class='pagination-bar' *ngIf='totalPages > 1'>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === 1' (click)='changePage(-1)'>
+              <ion-icon slot='start' name='chevron-back-outline'></ion-icon>Anterior
+            </ion-button>
+            <span>Página {{ currentPage }} / {{ totalPages }}</span>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === totalPages' (click)='changePage(1)'>
+              Siguiente<ion-icon slot='end' name='chevron-forward-outline'></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf='selectedSection === "horarios"'>
+        <div class='section-actions'>
+          <div>
+            <p class='section-title'>Horarios</p>
+            <p class='section-note'>Agregar disponibilidad con rapidez sin salir de la vista principal.</p>
+          </div>
+          <ion-button fill='solid' color='primary' class='primary-action' disabled>
+            <ion-icon slot='start' name='add-circle-outline'></ion-icon>
+            Agregar horario
+          </ion-button>
+          <p class='admin-note'>Solo se puede editar un horario existente por día. Usa la tabla para seleccionar y modificar el día deseado.</p>
+        </div>
+
+        <div class='list-tools'>
+          <ion-item lines='none' class='search-input'>
+            <ion-icon slot='start' name='search-outline'></ion-icon>
+            <ion-input placeholder='Buscar horarios' [(ngModel)]='horarioSearch' (ngModelChange)='pageReset()'></ion-input>
+          </ion-item>
+          <ion-segment [(ngModel)]='horarioFilter' (ionChange)='pageReset()' class='filter-segment'>
+            <ion-segment-button value='all'>Todos</ion-segment-button>
+            <ion-segment-button value='activo'>Activos</ion-segment-button>
+            <ion-segment-button value='inactivo'>Inactivos</ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div *ngIf='!filteredHorarios.length' class='empty-state'>No hay horarios que coincidan con los filtros.</div>
+
+        <div *ngIf='filteredHorarios.length' class='table-panel'>
+          <div class='table-responsive'>
+            <table class='admin-table'>
+              <thead>
+                <tr>
+                  <th>Día</th>
+                  <th>Intervalo</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor='let horario of pagedHorarios' class='clickable-row' (click)='openHorarioModal(horario)'>
+                  <td><strong>{{ horario.dia_semana }}</strong></td>
+                  <td>{{ horario.hora_inicio }} - {{ horario.hora_fin }}</td>
+                  <td><span [ngClass]='getServiceBadgeClass(horario.activo ? "activo" : "inactivo")'>{{ horario.activo ? 'Activo' : 'Inactivo' }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class='pagination-bar' *ngIf='totalPages > 1'>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === 1' (click)='changePage(-1)'>
+              <ion-icon slot='start' name='chevron-back-outline'></ion-icon>Anterior
+            </ion-button>
+            <span>Página {{ currentPage }} / {{ totalPages }}</span>
+            <ion-button fill='clear' size='small' [disabled]='currentPage === totalPages' (click)='changePage(1)'>
+              Siguiente<ion-icon slot='end' name='chevron-forward-outline'></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</ion-content>
+
+<div *ngIf='showModal' class='admin-modal-overlay' (click)='closeModal()'>
+  <div class='admin-modal-card' (click)='$event.stopPropagation()'>
+    <div class='admin-modal-top'>
+      <div>
+        <span class='admin-modal-caption'>{{ modalType === 'servicio' ? 'Servicios' : 'Horarios' }}</span>
+        <h2>
+          {{ modalType === 'servicio'
+            ? (modalMode === 'create' ? 'Nuevo servicio' : 'Editar servicio')
+            : (modalMode === 'edit' ? 'Editar horario' : 'Agregar horario') }}
+        </h2>
+      </div>
+      <button class='admin-modal-close' type='button' (click)='closeModal()'>
+        <ion-icon name='close-outline'></ion-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)='modalType === "servicio" ? saveService() : saveHorario()' class='admin-modal-form'>
+      <div *ngIf='modalType === "servicio"'>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label position='stacked'>Nombre</ion-label>
+          <ion-input type='text' [(ngModel)]='formService.nombre' name='modalNombre'></ion-input>
+        </ion-item>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label position='stacked'>Descripción</ion-label>
+          <ion-input type='text' [(ngModel)]='formService.descripcion' name='modalDescripcion'></ion-input>
+        </ion-item>
+        <div class='grid gap-4 sm:grid-cols-2'>
+          <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+            <ion-label position='stacked'>Precio</ion-label>
+            <ion-input type='number' [(ngModel)]='formService.precio' name='modalPrecio'></ion-input>
+          </ion-item>
+          <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+            <ion-label position='stacked'>Duración</ion-label>
+            <ion-input type='number' [(ngModel)]='formService.duracion_estimada' name='modalDuracion'></ion-input>
+          </ion-item>
+        </div>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label position='stacked'>URL de imagen</ion-label>
+          <ion-input type='text' [(ngModel)]='formService.imagen_principal' name='modalImagen'></ion-input>
+        </ion-item>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label>Estado</ion-label>
+          <ion-select [(ngModel)]='formService.estado' name='modalEstado'>
+            <ion-select-option value='activo'>Activo</ion-select-option>
+            <ion-select-option value='inactivo'>Inactivo</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div *ngIf='modalType === "horario"'>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label>Día de la semana</ion-label>
+          <ion-input type='text' [value]='formHorario.dia_semana' disabled></ion-input>
+        </ion-item>
+        <div class='grid gap-4 sm:grid-cols-2'>
+          <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+            <ion-label position='stacked'>Hora inicio</ion-label>
+            <ion-input type='time' [(ngModel)]='formHorario.hora_inicio' name='modalHoraInicio'></ion-input>
+          </ion-item>
+          <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+            <ion-label position='stacked'>Hora fin</ion-label>
+            <ion-input type='time' [(ngModel)]='formHorario.hora_fin' name='modalHoraFin'></ion-input>
+          </ion-item>
+        </div>
+        <ion-item class='rounded-3xl bg-[#F0EFEB] border border-[#2f4858]/10'>
+          <ion-label>Activo</ion-label>
+          <ion-toggle [(ngModel)]='formHorario.activo' name='modalActivo'></ion-toggle>
+        </ion-item>
+      </div>
+
+      <div class='admin-modal-footer'>
+        <ion-button fill='clear' color='medium' type='button' (click)='closeModal()'>Cancelar</ion-button>
+        <ion-button fill='solid' color='primary' type='submit'>{{ modalType === 'servicio' ? (modalMode === 'create' ? 'Guardar servicio' : 'Actualizar servicio') : 'Guardar horario' }}</ion-button>
+      </div>
+    </form>
+  </div>
+</div>

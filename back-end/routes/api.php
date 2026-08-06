@@ -76,6 +76,7 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('horarios')->group(function () {
                 Route::post('/', [HorarioDisponibleController::class, 'store']);
+                Route::match(['put', 'patch'], '/{horario}', [HorarioDisponibleController::class, 'update']);
             });
         });
     });
