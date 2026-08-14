@@ -1,4 +1,4 @@
-﻿<ion-app>
+<ion-app>
   <ng-container *ngIf="showAppShell; else authFullPage">
     <div class="flex flex-col h-dvh bg-[#F0EFEB] select-none">
       <div
@@ -122,4 +122,7 @@
   <ng-template #authFullPage>
     <ion-router-outlet [animation]="curtainUpAnimation"></ion-router-outlet>
   </ng-template>
+
+  <!-- Modal de promociones -->
+  <app-promo-modal></app-promo-modal>
 </ion-app>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
@@ -34,5 +35,10 @@ class Servicio extends Model
     public function citas(): HasMany
     {
         return $this->hasMany(Cita::class, 'servicio_id');
+    }
+
+    public function promociones(): BelongsToMany
+    {
+        return $this->belongsToMany(Promocion::class, 'promocion_servicio');
     }
 }

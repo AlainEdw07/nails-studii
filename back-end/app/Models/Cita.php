@@ -12,10 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'telefono',
     'correo',
     'servicio_id',
+    'promocion_id',
     'fecha_cita',
     'hora_cita',
     'notas_adicionales',
     'estado',
+    'precio_final',
 ])]
 class Cita extends Model
 {
@@ -31,6 +33,11 @@ class Cita extends Model
     public function servicio(): BelongsTo
     {
         return $this->belongsTo(Servicio::class, 'servicio_id');
+    }
+
+    public function promocion(): BelongsTo
+    {
+        return $this->belongsTo(Promocion::class, 'promocion_id');
     }
 
     public function historial(): HasMany

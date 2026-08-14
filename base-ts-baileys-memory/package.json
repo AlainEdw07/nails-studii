@@ -7,8 +7,10 @@
   "scripts": {
     "start": "node ./dist/app.js",
     "lint": "eslint . --no-ignore",
-    "dev": "npm run lint && nodemon --signal SIGKILL  ./src/app.ts",
-    "build": "npx rollup -c"
+    "clean": "rm -rf bot_sessions bot.qr.png",
+    "dev": "npm run lint && nodemon --signal SIGKILL ./src/app.ts",
+    "dev:clean": "npm run clean && npm run dev",
+    "build": "tsc"
   },
   "keywords": [],
   "dependencies": {

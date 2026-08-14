@@ -1,4 +1,4 @@
-﻿import * as dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
 import { join } from 'path'
 import { createBot, createProvider, createFlow, addKeyword, utils } from '@builderbot/bot'
 import { MemoryDB as Database } from '@builderbot/bot'
@@ -456,17 +456,32 @@ const reloadFlow = addKeyword<Provider, Database>(['recargar', 'reload'])
         await flowDynamic(`Recargado correctamente. Servicios: ${data.servicios.length}, horarios: ${data.horarios_disponibles.length}`)
     })
 
+const fetchLatestWaVersion = async (): Promise<[number, number, number]> => {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json')
+        if (response.ok) {
+            const data = (await response.json()) as { version?: [number, number, number] }
+            if (Array.isArray(data.version) && data.version.length === 3) {
+                return data.version
+            }
+        }
+    } catch {
+        // Fallback en caso de que no haya conexión a internet al obtener la versión
+    }
+    return [2, 3000, 1043857760]
+}
+
 const main = async () => {
     await loadChatbotData()
     const dynamicFlows = buildChatbotFlows()
     const adapterFlow = createFlow([welcomeFlow, registerFlow, fullSamplesFlow, reloadFlow, ...dynamicFlows])
 
-    // If you experience ERRO AUTH issues, check the latest WhatsApp version at:
-    // https://wppconnect.io/whatsapp-versions/
-    // Example: version "2.3000.1035824857-alpha" -> [2, 3000, 1035824857]
-    const adapterProvider = createProvider(Provider,
-		{ version: [2, 3000, 1035824857] }
-	)
+    const waVersion = await fetchLatestWaVersion()
+    console.log(`[BuilderBot] Iniciando con versión de WhatsApp Web: ${waVersion.join('.')}`)
+
+    const adapterProvider = createProvider(Provider, {
+        version: waVersion,
+    })
     const adapterDB = new Database()
 
     const { handleCtx, httpServer } = await createBot({

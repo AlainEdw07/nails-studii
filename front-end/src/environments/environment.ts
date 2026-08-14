@@ -5,6 +5,7 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8000/api/v1',
+  instagramAccessToken: 'IGAAW3jebMuRxBZAFk4eVBrRF9UdmlaYzRwUVc4QkppaEk4bmdDcFZACbDhNNHYwRThOVndYWWhpT1pfUWlQUlpJMXBuSFZAsZA05rUmppaVo2a29qaG1xc0M5Unc1UXJ4VlBIOFBXOXUzbzBJMnUtbU0wUlFsT0I4TENzaTJsb0xqVQZDZD',
 };
 
 /*
