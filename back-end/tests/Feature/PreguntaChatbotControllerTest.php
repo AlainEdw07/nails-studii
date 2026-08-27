@@ -24,12 +24,14 @@ test('can retrieve chatbot preguntas, servicios, and horarios_disponibles', func
         'estado' => 'activo',
     ]);
 
-    HorarioDisponible::create([
-        'dia_semana' => 'Jueves',
-        'hora_inicio' => '09:00',
-        'hora_fin' => '12:00',
-        'activo' => true,
-    ]);
+    HorarioDisponible::updateOrCreate(
+        ['dia_semana' => 'Jueves'],
+        [
+            'hora_inicio' => '09:00',
+            'hora_fin' => '12:00',
+            'activo' => true,
+        ]
+    );
 
     $response = $this->getJson('/api/v1/chatbot/preguntas');
 

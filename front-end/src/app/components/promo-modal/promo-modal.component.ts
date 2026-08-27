@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiService } from 'src/app/services/api.service';
 
+import { TvPublicidadService } from 'src/app/services/tv-publicidad.service';
+
 @Component({
   selector: 'app-promo-modal',
   templateUrl: './promo-modal.component.html',
@@ -18,18 +20,27 @@ export class PromoModalComponent implements OnInit {
   readonly STORAGE_KEY_HIDE = 'nails_hide_promo_modal';
   readonly STORAGE_KEY_PHONE = 'nails_promo_phone';
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private tvPublicidadService: TvPublicidadService
+  ) {}
 
   ngOnInit() {
     this.verificarEstadoModal();
   }
 
   verificarEstadoModal() {
+    if (this.tvPublicidadService.isTvMode) {
+      return; // No mostrar modal en modo TV / publicidad
+    }
+
     const hideModal = localStorage.getItem(this.STORAGE_KEY_HIDE);
     if (hideModal !== 'true') {
       // Pequeño retraso para que la animación de entrada sea fluida
       setTimeout(() => {
-        this.mostrarModal = true;
+        if (!this.tvPublicidadService.isTvMode) {
+          this.mostrarModal = true;
+        }
       }, 400);
     }
   }

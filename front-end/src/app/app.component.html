@@ -6,14 +6,16 @@
         [ngClass]="isHome ? 'flex-1' : 'flex-none'">
         <div class="bg-white/20 backdrop-brightness-60 h-full w-full p-6 sm:p-12 pb-0 pt-6 flex items-end">
           <div>
-            <app-chatbot *ngIf="isHome"></app-chatbot>
+            <app-chatbot *ngIf="isHome && !(tvPublicidadService.isTvMode$ | async)"></app-chatbot>
             <nav class="text-[#F0EFEB] text-[18px]">
               <ul class="flex space-x-2 sm:space-x-3 [&_button]:transition-all">
                 <li><button routerLink="/home" routerLinkActive="font-bold tracking-widest">Inicio</button></li>
                 <span>/</span>
                 <li><button routerLink="/catalogo" routerLinkActive="font-bold tracking-widest">Catálogo</button></li>
-                <span>/</span>
-                <li><button routerLink="/nosotras" routerLinkActive="font-bold tracking-widest">Nosotras</button></li>
+                <ng-container *ngIf="!(tvPublicidadService.isTvMode$ | async)">
+                  <span>/</span>
+                  <li><button routerLink="/nosotras" routerLinkActive="font-bold tracking-widest">Nosotras</button></li>
+                </ng-container>
                 <!-- <span>/</span> -->
                 <!-- <li><button routerLink="/contactanos" routerLinkActive="font-bold tracking-widest">Contáctanos</button></li> -->
               </ul>
@@ -21,6 +23,36 @@
             <p class="text-[84px] tracking-[7px] sm:tracking-[18px] text-[#F0EFEB] font-bold">NAILS STUDIO</p>
           </div>
         </div>
+      </div>
+
+      <!-- Insignia y Controles del Modo Publicidad TV -->
+      <div class="fixed top-4 right-4 z-[9990] flex items-center gap-2">
+        <div *ngIf="tvPublicidadService.isTvMode$ | async"
+          class="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide border border-white/20 shadow-lg">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span>TV</span>
+          <span *ngIf="tvPublicidadService.isPaused$ | async" class="text-amber-300 font-normal ml-1">(Pausado)</span>
+
+          <button
+            (click)="tvPublicidadService.isPaused ? tvPublicidadService.reanudarManualmente() : tvPublicidadService.pausarManualmente()"
+            class="ml-1 px-2 py-0.5 rounded text-[10px] transition-colors">
+            {{ (tvPublicidadService.isPaused$ | async) ? '▶ Reanudar' : '❚❚ Pausar' }}
+          </button>
+
+          <button (click)="tvPublicidadService.activarModoTv(false)"
+            class="ml-1 px-1.5 py-0.5 rounded text-[10px] text-white transition-colors" title="Salir del modo TV">
+            ✕
+          </button>
+        </div>
+
+        <button *ngIf="!(tvPublicidadService.isTvMode$ | async)" (click)="tvPublicidadService.activarModoTv(true)"
+          class="bg-black/40 hover:bg-black/70 text-white/80 hover:text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-white/10 transition-all opacity-40 hover:opacity-100"
+          title="Activar Modo Publicidad TV">
+          📺 Modo TV
+        </button>
       </div>
       <div class="relative overflow-hidden transition-all duration-700" [ngClass]="isHome ? 'h-0' : 'flex-1'">
         <ion-router-outlet [animation]="curtainUpAnimation"></ion-router-outlet>
@@ -40,10 +72,8 @@
           <img [src]="img" class="modal-img max-h-[80vh] max-w-[55vw] object-contain shadow-2xl" />
 
           <!-- Botón colapsa en altura al activar -->
-          <div class="overflow-hidden transition-all duration-300"
-            [style.max-height]="probarDiseno ? '0px' : '80px'"
-            [style.opacity]="probarDiseno ? '0' : '1'"
-            [style.margin-top]="probarDiseno ? '0' : '1.5rem'">
+          <div class="overflow-hidden transition-all duration-300" [style.max-height]="probarDiseno ? '0px' : '80px'"
+            [style.opacity]="probarDiseno ? '0' : '1'" [style.margin-top]="probarDiseno ? '0' : '1.5rem'">
             <button class="bg-[#F0EFEB] w-62 h-10 font-bold text-[#2f4858] hover:w-78 transition-all"
               (click)="galeriaModal.activarProbar()">
               PROBAR DISEÑO
@@ -53,8 +83,7 @@
 
         <!-- Sección cámara: expande en ancho desde la derecha -->
         <div class="flex items-center overflow-hidden transition-all duration-500"
-          [style.max-width]="probarDiseno ? '600px' : '0px'"
-          [style.opacity]="probarDiseno ? '1' : '0'">
+          [style.max-width]="probarDiseno ? '600px' : '0px'" [style.opacity]="probarDiseno ? '1' : '0'">
           <div class="bg-[#F0EFEB] h-6 w-6 rounded-full mx-12"></div>
 
           <!-- Input oculto para seleccionar archivo -->
@@ -63,7 +92,8 @@
           <div class="flex flex-col items-center justify-center gap-4">
 
             <!-- Caja: upload / preview / resultado -->
-            <div class="bg-[#F0EFEB] flex flex-col items-center justify-center overflow-hidden shrink-0 transition-all duration-300"
+            <div
+              class="bg-[#F0EFEB] flex flex-col items-center justify-center overflow-hidden shrink-0 transition-all duration-300"
               [ngClass]="resultadoUrl ? 'h-72 w-72' : 'h-48 w-48'"
               [class.cursor-pointer]="!fotoManoPreview && !generando"
               (click)="!fotoManoPreview && !generando ? abrirSelector() : null">
@@ -75,8 +105,8 @@
               </ng-container>
 
               <!-- Preview de la foto subida -->
-              <img *ngIf="fotoManoPreview && !generando && !resultadoUrl"
-                [src]="fotoManoPreview" class="h-full w-full object-cover" alt="Tu mano">
+              <img *ngIf="fotoManoPreview && !generando && !resultadoUrl" [src]="fotoManoPreview"
+                class="h-full w-full object-cover" alt="Tu mano">
 
               <!-- Generando... (spinner) -->
               <ng-container *ngIf="generando">
@@ -85,8 +115,7 @@
               </ng-container>
 
               <!-- Resultado final -->
-              <img *ngIf="resultadoUrl"
-                [src]="resultadoUrl" class="h-full w-full object-cover" alt="Diseño en tu mano">
+              <img *ngIf="resultadoUrl" [src]="resultadoUrl" class="h-full w-full object-cover" alt="Diseño en tu mano">
             </div>
 
             <!-- Error -->
@@ -94,8 +123,7 @@
 
             <!-- Botón GENERAR (foto lista, aún no generado) -->
             <button *ngIf="fotoManoPreview && !generando && !resultadoUrl"
-              class="bg-[#F0EFEB] w-42 h-10 font-bold text-[#2f4858] hover:w-48 transition-all"
-              (click)="generar()">
+              class="bg-[#F0EFEB] w-42 h-10 font-bold text-[#2f4858] hover:w-48 transition-all" (click)="generar()">
               GENERAR
             </button>
 

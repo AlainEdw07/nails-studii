@@ -19,12 +19,14 @@ function createAdminHorario(): Administrador
 }
 
 test('public can list horarios disponibles', function () {
-    HorarioDisponible::create([
-        'dia_semana' => 'Lunes',
-        'hora_inicio' => '09:00',
-        'hora_fin' => '13:00',
-        'activo' => true,
-    ]);
+    HorarioDisponible::updateOrCreate(
+        ['dia_semana' => 'Lunes'],
+        [
+            'hora_inicio' => '09:00',
+            'hora_fin' => '13:00',
+            'activo' => true,
+        ]
+    );
 
     $response = $this->getJson('/api/v1/horarios/disponibles');
 
@@ -46,6 +48,8 @@ test('admin can store horario disponible', function () {
     ]);
 
     $token = $login->json('token');
+
+    HorarioDisponible::where('dia_semana', 'Martes')->delete();
 
     $response = $this->withHeader('Authorization', "Bearer {$token}")
         ->postJson('/api/v1/admin/horarios', [

@@ -1,9 +1,10 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { AnimationBuilder, AnimationController } from '@ionic/angular';
 import { filter } from 'rxjs/operators';
 import { GaleriaModalService } from './services/galeria-modal.service';
 import { ReplicateService } from './services/replicate.service';
+import { TvPublicidadService } from './services/tv-publicidad.service';
 
 @Component({
   selector: 'app-root',
@@ -30,6 +31,7 @@ export class AppComponent {
     private router: Router,
     public galeriaModal: GaleriaModalService,
     private replicate: ReplicateService,
+    public tvPublicidadService: TvPublicidadService,
   ) {
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd)
@@ -48,6 +50,13 @@ export class AppComponent {
       this.imagenDiseno = img;
       if (!img) this.resetFoto();
     });
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:touchstart')
+  @HostListener('document:keydown')
+  onUserInteraction() {
+    this.tvPublicidadService.notificarInteraccion();
   }
 
   abrirSelector() {

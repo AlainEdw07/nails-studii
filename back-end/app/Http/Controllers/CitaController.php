@@ -58,13 +58,16 @@ class CitaController extends Controller
 
         // Calcular precio final con promoción
         $precioFinal = null;
-        if ($validated['servicio_id']) {
-            $servicio = Servicio::find($validated['servicio_id']);
+        $servicioId = $validated['servicio_id'] ?? null;
+        $promocionId = $validated['promocion_id'] ?? null;
+
+        if ($servicioId) {
+            $servicio = Servicio::find($servicioId);
             if ($servicio) {
                 $precioFinal = $servicio->precio;
 
-                if ($validated['promocion_id']) {
-                    $promocion = Promocion::find($validated['promocion_id']);
+                if ($promocionId) {
+                    $promocion = Promocion::find($promocionId);
                     if ($promocion && $promocion->estaActiva() && $promocion->aplicaAServicio($servicio->id)) {
                         $descuento = $promocion->calcularDescuento($servicio->precio);
                         $precioFinal = max(0, $servicio->precio - $descuento);
