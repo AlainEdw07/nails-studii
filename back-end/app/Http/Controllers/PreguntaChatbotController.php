@@ -7,13 +7,26 @@ use App\Models\PreguntaChatbot;
 use App\Models\Servicio;
 use Illuminate\Http\JsonResponse;
 
+use Illuminate\Http\Request;
+
 class PreguntaChatbotController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $preguntas = PreguntaChatbot::query()
+        $tipo = $request->query('tipo');
+
+        $query = PreguntaChatbot::query();
+
+        if ($tipo && is_string($tipo)) {
+            $query->where(function ($q) use ($tipo) {
+                $q->where('tipo', $tipo)
+                  ->orWhere('tipo', 'ambos');
+            });
+        }
+
+        $preguntas = $query
             ->orderBy('id')
-            ->get(['id', 'pregunta', 'opciones_respuesta', 'accion'])
+            ->get(['id', 'tipo', 'pregunta', 'opciones_respuesta', 'accion'])
             ->map(function (PreguntaChatbot $pregunta) {
                 if (!is_string($pregunta->opciones_respuesta) || $pregunta->opciones_respuesta === '') {
                     return $pregunta;

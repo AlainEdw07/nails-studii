@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
+    'tipo',
     'pregunta',
     'opciones_respuesta',
     'accion',

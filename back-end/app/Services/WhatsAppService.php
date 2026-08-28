@@ -66,11 +66,11 @@ class WhatsAppService
     }
 
     /**
-     * Enviar mensaje de confirmación de registro
+     * Enviar mensaje de confirmación de registro y saludo inicial por WhatsApp
      */
     public function sendRegistrationConfirmation(string $number): bool
     {
-        $message = '¡Hola! 🌸 Te has registrado exitosamente para recibir nuestras promociones exclusivas en Nails Studii. ¡Gracias por sumarte! ✨';
+        $message = "¡Hola! 🌸 Te saludamos de Nails Studii. Gracias por ingresar tu número telefónico y aceptar el consentimiento de contacto en nuestro sitio web.\n\nEstamos a tu disposición para dar seguimiento a tus solicitudes de información, cotizaciones o citas.\n\n¿En qué te podemos ayudar hoy?\n1. Solicitud de información de servicios\n2. Cotizaciones de servicios\n3. Agendar cita";
 
         return $this->sendMessage($number, $message);
     }

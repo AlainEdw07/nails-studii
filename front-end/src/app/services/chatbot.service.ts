@@ -53,7 +53,7 @@ export class ChatbotService {
 
   obtenerConfiguracion(): Observable<ChatbotConfigResponse> {
     return this.http
-      .get<ChatbotApiResponse>(`${this.apiUrl}/chatbot/preguntas`, {
+      .get<ChatbotApiResponse>(`${this.apiUrl}/chatbot/preguntas?tipo=web`, {
         headers: this.headers,
       })
       .pipe(map((data) => this.transformarConfiguracion(data)));

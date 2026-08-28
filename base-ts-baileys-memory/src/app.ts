@@ -195,56 +195,207 @@ const buildChatbotFlows = () => {
     }
 
     const menuQuestion = findQuestion('menu_principal')
-    const servicesQuestion = findQuestion('listar_servicios')
-    const pricesQuestion = findQuestion('mostrar_precios')
-    const scheduleQuestion = findQuestion('mostrar_horarios')
-    const availabilityQuestion = findQuestion('consultar_disponibilidad')
-    const advisorQuestion = findQuestion('derivar_whatsapp')
 
-    const serviceSelectionFlow = addKeyword<Provider, Database>(['servicios', 'servicio', 'catalogo', 'catálogo', utils.setEvent('SERVICE_SELECTION')])
-        .addAnswer(`${servicesQuestion.pregunta ?? 'Aquí está nuestro catálogo de servicios:'}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: ${s.descripcion ?? ''} (Precio: $${s.precio ?? 'N/A'})` }))) : 'No hay servicios disponibles en este momento.'}`)
-
-    const priceFlow = addKeyword<Provider, Database>(['precios', 'precio', 'costo', 'costos', utils.setEvent('PRICE_FLOW')])
-        .addAnswer(`${pricesQuestion.pregunta ?? 'Precios aproximados:'}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: $${s.precio ?? 'A consultar'}` }))) : 'Consultar directamente con un asesor.'}`)
-
-    const scheduleFlow = addKeyword<Provider, Database>(['horarios', 'horario', 'mostrar horarios', utils.setEvent('SCHEDULE_FLOW')])
-        .addAnswer(`${scheduleQuestion.pregunta ?? 'Nuestros horarios de atención son:'}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((h: any) => ({ nombre: `${h.dia_semana}: ${h.hora_inicio} - ${h.hora_fin}` }))) : 'Atendemos de Lunes a Sábado de 9:00 AM a 7:00 PM.'}`)
-
-    const availabilityFlow = addKeyword<Provider, Database>(['disponibilidad', 'disponible', utils.setEvent('AVAILABILITY_FLOW')])
-        .addAnswer(availabilityQuestion.pregunta ?? 'Mantenemos atención general en nuestros horarios establecidos. Si deseas confirmar un horario específico, escríbenos para derivarte con un asesor.')
-
-    const advisorFlow = addKeyword<Provider, Database>(['asesor', 'whatsapp', 'humano', 'ayuda', utils.setEvent('ADVISOR_FLOW')])
-        .addAnswer(advisorQuestion.pregunta ?? 'Un asesor se pondrá en contacto contigo a la brevedad. Por favor déjanos tu duda.')
-
-    const mainMenuFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu', 'menú'])
-        .addAnswer(menuQuestion.pregunta ?? '¡Hola! ¿En qué puedo ayudarte hoy?')
-        .addAnswer(renderOptions(menuQuestion.opciones_respuesta ?? [
-            'Catálogo de servicios',
-            'Precios aproximados',
-            'Horarios disponibles',
-            'Consulta de disponibilidad general',
-            'Derivar atención a WhatsApp'
-        ]), { capture: true }, async (ctx, { gotoFlow, fallBack }) => {
-            const text = ctx.body.toLowerCase()
-            if (text.includes('servicio') || text.includes('catalogo') || text.includes('catálogo') || text.startsWith('1')) {
-                return gotoFlow(serviceSelectionFlow)
+    // Flujo Interactivo de Agendamiento de Citas con selección por números
+    const agendarCitaFlow = addKeyword<Provider, Database>(utils.setEvent('AGENDAR_CITA_FLOW'))
+        // Paso 1: Seleccionar Servicio por Número
+        .addAnswer('🌸 *Paso 1/4: Selecciona el servicio que deseas agendar:*', null, async (_, { state }) => {
+            const existingId = state.get && state.get('servicio_id')
+            if (!existingId) {
+                await state.clear()
             }
-            if (text.includes('precio') || text.startsWith('2')) {
-                return gotoFlow(priceFlow)
+        })
+        .addAnswer(
+            `${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre} ($${s.precio ?? 'N/A'}) - ${s.duracion_estimada ?? '30-60 min'}` }))) : 'Sin servicios disponibles.'}\n\nEscribe el número del servicio deseado (ej. 1) o escribe *menú* para cancelar:`,
+            { capture: true },
+            async (ctx, { state, fallBack, gotoFlow }) => {
+                const text = ctx.body.toLowerCase().trim()
+                if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                    return gotoFlow(mainMenuFlow)
+                }
+
+                const index = parseInt(text, 10) - 1
+                const servicios = chatbotData!.servicios
+                if (!Number.isNaN(index) && servicios[index]) {
+                    await state.update({
+                        servicio_id: servicios[index].id,
+                        servicio: servicios[index].nombre
+                    })
+                    return
+                }
+
+                return fallBack(`Por favor selecciona un número válido del 1 al ${servicios.length} o escribe *menú*.`)
             }
-            if (text.includes('horario') || text.startsWith('3')) {
-                return gotoFlow(scheduleFlow)
+        )
+        // Paso 2: Seleccionar Día / Horario por Número
+        .addAnswer(
+            '📅 *Paso 2/4: Selecciona el día y horario disponible:*',
+            null
+        )
+        .addAnswer(
+            `${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((h: any) => ({ nombre: `${h.dia_semana}: ${h.hora_inicio} - ${h.hora_fin}` }))) : 'Atendemos de Lunes a Sábado de 09:00 AM a 07:00 PM.'}\n\nEscribe el número del horario deseado (ej. 1) o escribe *menú* para cancelar:`,
+            { capture: true },
+            async (ctx, { state, fallBack, gotoFlow }) => {
+                const text = ctx.body.toLowerCase().trim()
+                if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                    return gotoFlow(mainMenuFlow)
+                }
+
+                const index = parseInt(text, 10) - 1
+                const horarios = chatbotData!.horarios_disponibles
+                if (!Number.isNaN(index) && horarios[index]) {
+                    await state.update({
+                        dia_semana: horarios[index].dia_semana,
+                        hora_inicio: horarios[index].hora_inicio
+                    })
+                    return
+                }
+
+                return fallBack(`Por favor selecciona un número válido del 1 al ${horarios.length} o escribe *menú*.`)
             }
-            if (text.includes('disponibil') || text.startsWith('4')) {
-                return gotoFlow(availabilityFlow)
+        )
+        // Paso 3: Ingresar Fecha específica
+        .addAnswer(
+            '🗓️ *Paso 3/4:* Ingresa la fecha para tu cita (formato YYYY-MM-DD o DD/MM/YYYY, ej. 2026-08-29):',
+            { capture: true },
+            async (ctx, { state, fallBack, gotoFlow }) => {
+                const text = ctx.body.toLowerCase().trim()
+                if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                    return gotoFlow(mainMenuFlow)
+                }
+
+                const formattedDate = formatDateInput(text)
+                if (formattedDate) {
+                    await state.update({ fecha: formattedDate })
+                    return
+                }
+
+                return fallBack('Fecha no válida. Ingresa en formato YYYY-MM-DD (ej. 2026-08-29) o DD/MM/YYYY, o escribe *menú*.')
             }
-            if (text.includes('asesor') || text.includes('whatsapp') || text.startsWith('5')) {
-                return gotoFlow(advisorFlow)
+        )
+        // Paso 4: Ingresar Hora específica
+        .addAnswer(
+            '⏰ *Paso 4/4:* Ingresa la hora deseada (formato HH:MM, ej. 10:00 o 15:30):',
+            { capture: true },
+            async (ctx, { state, fallBack, gotoFlow }) => {
+                const text = ctx.body.toLowerCase().trim()
+                if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                    return gotoFlow(mainMenuFlow)
+                }
+
+                const normalizedTime = normalizeTimeInput(text)
+                if (normalizedTime) {
+                    await state.update({ hora: normalizedTime })
+                    return
+                }
+
+                return fallBack('Hora no válida. Ingresa en formato HH:MM (ej. 10:30 o 16:00), o escribe *menú*.')
             }
-            return fallBack('No entendí tu opción. Por favor elige una opción del menú (1-5).')
+        )
+        // Nombre del cliente y creación
+        .addAnswer(
+            '👤 Por último, escribe tu nombre completo para registrar la cita:',
+            { capture: true },
+            async (ctx, { state, flowDynamic, gotoFlow, fallBack }) => {
+                const text = ctx.body.trim()
+                if (text.toLowerCase() === 'menu' || text.toLowerCase() === 'menú' || text.toLowerCase() === 'inicio') {
+                    return gotoFlow(mainMenuFlow)
+                }
+
+                if (!isValidName(text)) {
+                    return fallBack('Por favor ingresa un nombre válido (al menos 2 caracteres).')
+                }
+
+                await state.update({
+                    nombre: text,
+                    telefono: ctx.from
+                })
+
+                const resultMessage = await createCitaFromState(state)
+                await flowDynamic(resultMessage)
+                await flowDynamic('Escribe *menú* o *inicio* para regresar al menú principal en cualquier momento.')
+            }
+        )
+
+    // Flujo de consulta de servicios
+    const infoSelectionFlow = addKeyword<Provider, Database>(['informacion', 'información', 'servicios', 'servicio', 'catalogo', 'catálogo', utils.setEvent('INFO_SELECTION')])
+        .addAnswer(`Te compartimos la información detallada de nuestros servicios disponibles:\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: ${s.descripcion ?? ''} (Precio: $${s.precio ?? 'N/A'}, Duración: ${s.duracion_estimada ?? '30-60 min'})` }))) : 'No hay información de servicios disponible.'}`)
+        .addAnswer('Escribe el número del servicio que deseas agendar (ej. 1) o escribe *menú* para volver al menú principal:', { capture: true }, async (ctx, { state, gotoFlow, fallBack }) => {
+            const text = ctx.body.toLowerCase().trim()
+            if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                return gotoFlow(mainMenuFlow)
+            }
+            const index = parseInt(text, 10) - 1
+            const servicios = chatbotData!.servicios
+            if (!Number.isNaN(index) && servicios[index]) {
+                await state.clear()
+                await state.update({
+                    servicio_id: servicios[index].id,
+                    servicio: servicios[index].nombre
+                })
+                return gotoFlow(agendarCitaFlow)
+            }
+            if (text.includes('cita') || text.includes('agendar')) {
+                return gotoFlow(agendarCitaFlow)
+            }
+            return fallBack(`Escribe un número del 1 al ${servicios.length} para agendar o escribe *menú*.`)
         })
 
-    return [mainMenuFlow, serviceSelectionFlow, priceFlow, scheduleFlow, availabilityFlow, advisorFlow]
+    // Flujo de cotizaciones / precios
+    const quoteFlow = addKeyword<Provider, Database>(['cotizaciones', 'cotizacion', 'cotización', 'precios', 'precio', 'costo', 'costos', utils.setEvent('QUOTE_FLOW')])
+        .addAnswer(`Cotizaciones y precios aproximados de nuestros servicios:\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: $${s.precio ?? 'A cotizar'}` }))) : 'Consultar nuestros servicios disponibles.'}`)
+        .addAnswer('Escribe el número del servicio para agendar tu cita (ej. 1) o escribe *menú* para volver:', { capture: true }, async (ctx, { state, gotoFlow, fallBack }) => {
+            const text = ctx.body.toLowerCase().trim()
+            if (text === 'menu' || text === 'menú' || text === 'inicio') {
+                return gotoFlow(mainMenuFlow)
+            }
+            const index = parseInt(text, 10) - 1
+            const servicios = chatbotData!.servicios
+            if (!Number.isNaN(index) && servicios[index]) {
+                await state.clear()
+                await state.update({
+                    servicio_id: servicios[index].id,
+                    servicio: servicios[index].nombre
+                })
+                return gotoFlow(agendarCitaFlow)
+            }
+            if (text.includes('cita') || text.includes('agendar')) {
+                return gotoFlow(agendarCitaFlow)
+            }
+            return fallBack(`Escribe un número del 1 al ${servicios.length} para agendar o escribe *menú*.`)
+        })
+
+    // Flujo directo de Citas (Menú opción 3)
+    const citaFlow = addKeyword<Provider, Database>(['citas', 'cita', 'agendar', 'horarios', 'horario', utils.setEvent('CITA_FLOW')])
+        .addAnswer('Formulario de Agendamiento de Citas', null, async (_, { gotoFlow }) => {
+            return gotoFlow(agendarCitaFlow)
+        })
+
+    // Menú Principal
+    const mainMenuFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu', 'menú', 'inicio'])
+        .addAnswer(menuQuestion.pregunta ?? '¡Hola! 🌸 Te saludamos de Nails Studii para dar seguimiento a tu solicitud de información, cotizaciones o citas. ¿En qué te podemos ayudar hoy?')
+        .addAnswer(renderOptions(menuQuestion.opciones_respuesta ?? [
+            'Solicitud de información de servicios',
+            'Cotizaciones de servicios',
+            'Agendar cita'
+        ]), { capture: true }, async (ctx, { gotoFlow, fallBack }) => {
+            const text = ctx.body.toLowerCase().trim()
+            if (text.includes('informac') || text.includes('servicio') || text.includes('catalogo') || text.includes('catálogo') || text === '1' || text.startsWith('1.')) {
+                return gotoFlow(infoSelectionFlow)
+            }
+            if (text.includes('cotiz') || text.includes('precio') || text === '2' || text.startsWith('2.')) {
+                return gotoFlow(quoteFlow)
+            }
+            if (text.includes('cita') || text.includes('agendar') || text.includes('horario') || text === '3' || text.startsWith('3.')) {
+                return gotoFlow(agendarCitaFlow)
+            }
+            if (text.includes('menu') || text.includes('menú') || text.includes('inicio')) {
+                return gotoFlow(mainMenuFlow)
+            }
+            return fallBack('No entendí tu opción. Por favor elige una opción del menú (1, 2 o 3) o escribe *menú*.')
+        })
+
+    return [mainMenuFlow, infoSelectionFlow, quoteFlow, citaFlow, agendarCitaFlow]
 }
 
 const loadChatbotData = async () => {
@@ -252,7 +403,7 @@ const loadChatbotData = async () => {
         const data = await chatbotApi.getChatbotData()
         chatbotData = data
         console.log('Chatbot API data loaded', {
-            url: `${LARAVEL_API_URL}/chatbot/preguntas`,
+            url: `${LARAVEL_API_URL}/chatbot/preguntas?tipo=whatsapp`,
             preguntas: data.preguntas.length,
             servicios: data.servicios.length,
             horarios_disponibles: data.horarios_disponibles.length,
@@ -260,7 +411,7 @@ const loadChatbotData = async () => {
         return data
     } catch (error) {
         console.warn('No se pudo cargar la configuración del chatbot desde la API:', error)
-        console.warn('URL usada:', `${LARAVEL_API_URL}/chatbot/preguntas`)
+        console.warn('URL usada:', `${LARAVEL_API_URL}/chatbot/preguntas?tipo=whatsapp`)
         return null
     }
 }

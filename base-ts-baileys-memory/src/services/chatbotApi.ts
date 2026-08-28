@@ -6,7 +6,7 @@ export class ChatbotApiService {
     }
 
     async getChatbotData(): Promise<{ preguntas: any[]; servicios: any[]; horarios_disponibles: any[] }> {
-        const response = await fetch(`${this.baseUrl}/chatbot/preguntas`, {
+        const response = await fetch(`${this.baseUrl}/chatbot/preguntas?tipo=whatsapp`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
