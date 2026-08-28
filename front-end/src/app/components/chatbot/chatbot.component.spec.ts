@@ -20,10 +20,13 @@ describe('ChatbotComponent (C3/C7: chatbot.component)', () => {
           useValue: {
             obtenerConfiguracion: () =>
               of({
-                saludo: '¡Hola! ¿En qué puedo ayudarte?',
+                saludo: '¡Hola! ¿En qué puedo ayudarte hoy?',
                 opciones: [
-                  { texto: 'Ver catálogo', respuesta: 'Aquí puedes ver el catálogo.' },
-                  { texto: 'Agendar cita', respuesta: 'Puedes agendar cita desde la app.' },
+                  { texto: 'Catálogo de servicios', respuesta: 'Aquí puedes ver el catálogo de servicios.' },
+                  { texto: 'Precios aproximados', respuesta: 'Los precios son los siguientes...' },
+                  { texto: 'Horarios disponibles', respuesta: 'Atendemos de Lunes a Sábado.' },
+                  { texto: 'Consulta de disponibilidad general', respuesta: 'Tenemos disponibilidad.' },
+                  { texto: 'Derivar atención a WhatsApp', respuesta: 'Derivando a WhatsApp...', urlWhatsapp: 'https://wa.me/123456789' },
                 ],
               }),
           },
@@ -56,11 +59,34 @@ describe('ChatbotComponent (C3/C7: chatbot.component)', () => {
   });
 
   it('should handle selecting an option and update chat messages', () => {
-    const opcion = { texto: 'Ver catálogo', respuesta: 'Aquí puedes ver el catálogo.' };
+    const opcion = { texto: 'Catálogo de servicios', respuesta: 'Aquí puedes ver el catálogo de servicios.' };
     component.seleccionarOpcion(opcion);
 
     expect(component.mensajes.length).toBe(3); // saludo + user msg + bot resp
-    expect(component.mensajes[1].texto).toBe('Ver catálogo');
-    expect(component.mensajes[2].texto).toBe('Aquí puedes ver el catálogo.');
+    expect(component.mensajes[1].texto).toBe('Catálogo de servicios');
+    expect(component.mensajes[2].texto).toBe('Aquí puedes ver el catálogo de servicios.');
+  });
+
+  it('should trigger abrirWhatsapp when selecting an option with urlWhatsapp', () => {
+    spyOn(window, 'open');
+    const opcion = {
+      texto: 'Derivar atención a WhatsApp',
+      respuesta: 'Derivando a WhatsApp...',
+      urlWhatsapp: 'https://wa.me/123456789',
+    };
+
+    component.seleccionarOpcion(opcion);
+    expect(window.open).toHaveBeenCalledWith('https://wa.me/123456789', '_blank');
+  });
+
+  it('should return to main menu when option has esVolverInicio', () => {
+    const opcionVolver = {
+      texto: 'Volver al menú principal',
+      respuesta: '¿En qué más te puedo orientar?',
+      esVolverInicio: true,
+    };
+
+    component.seleccionarOpcion(opcionVolver);
+    expect(component.opcionesActuales).toEqual(component.opcionesIniciales);
   });
 });

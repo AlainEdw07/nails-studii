@@ -93,4 +93,13 @@ class HorarioDisponibleController extends Controller
             'horario_disponible' => $horario,
         ]);
     }
+
+    public function destroy(HorarioDisponible $horario): JsonResponse
+    {
+        $horario->delete();
+
+        return response()->json([
+            'mensaje' => 'Horario disponible eliminado correctamente.',
+        ]);
+    }
 }

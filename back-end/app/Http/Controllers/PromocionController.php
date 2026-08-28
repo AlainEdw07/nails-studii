@@ -4,12 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Promocion;
 use App\Models\Servicio;
+use App\Models\User;
+use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class PromocionController extends Controller
 {
+    protected WhatsAppService $whatsappService;
+
+    public function __construct(WhatsAppService $whatsappService)
+    {
+        $this->whatsappService = $whatsappService;
+    }
+
     public function index(): JsonResponse
     {
         $promociones = Promocion::with('servicios:id,nombre,precio')->get();
@@ -32,6 +41,7 @@ class PromocionController extends Controller
             'codigo_promocional' => ['nullable', 'string', 'unique:promociones,codigo_promocional'],
             'usos_maximos' => ['nullable', 'integer', 'min:1'],
             'aplica_todos_servicios' => ['boolean'],
+            'frecuencia_whatsapp' => ['nullable', 'in:sin_envio,unica,diaria,semanal,quincenal,mensual'],
             'servicio_ids' => ['nullable', 'array'],
             'servicio_ids.*' => ['exists:servicios,id'],
         ], [
@@ -65,6 +75,7 @@ class PromocionController extends Controller
             'codigo_promocional' => $validated['codigo_promocional'] ?? null,
             'usos_maximos' => $validated['usos_maximos'] ?? null,
             'aplica_todos_servicios' => $validated['aplica_todos_servicios'] ?? false,
+            'frecuencia_whatsapp' => $validated['frecuencia_whatsapp'] ?? 'sin_envio',
             'estado' => 'activo',
         ]);
 
@@ -118,6 +129,7 @@ class PromocionController extends Controller
             'usos_maximos' => ['nullable', 'integer', 'min:1'],
             'estado' => ['in:activo,inactivo,agotado'],
             'aplica_todos_servicios' => ['boolean'],
+            'frecuencia_whatsapp' => ['nullable', 'in:sin_envio,unica,diaria,semanal,quincenal,mensual'],
             'servicio_ids' => ['nullable', 'array'],
             'servicio_ids.*' => ['exists:servicios,id'],
         ]);
@@ -182,6 +194,103 @@ class PromocionController extends Controller
 
         return response()->json([
             'promociones' => $promociones,
+        ]);
+    }
+
+    /**
+     * Enviar promoción seleccionada por WhatsApp a usuarios con consentimiento
+     */
+    public function enviarWhatsApp(Request $request, int $id): JsonResponse
+    {
+        $promocion = Promocion::find($id);
+
+        if (! $promocion) {
+            return response()->json([
+                'mensaje' => 'Promoción no encontrada.',
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'frecuencia_whatsapp' => ['nullable', 'in:sin_envio,unica,diaria,semanal,quincenal,mensual'],
+            'mensaje_personalizado' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'mensaje' => 'Parámetros de envío por WhatsApp inválidos.',
+                'errores' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($request->filled('frecuencia_whatsapp')) {
+            $promocion->frecuencia_whatsapp = $request->input('frecuencia_whatsapp');
+            $promocion->save();
+        }
+
+        // Obtener usuarios con consentimiento
+        $usersWithConsent = User::where('whatsapp_consent', true)
+            ->whereNotNull('number')
+            ->where('number', '!=', '')
+            ->get();
+
+        if ($usersWithConsent->isEmpty()) {
+            return response()->json([
+                'mensaje' => 'No hay usuarios registrados con consentimiento para recibir promociones por WhatsApp.',
+                'frecuencia_programada' => $promocion->frecuencia_whatsapp,
+                'enviados' => 0,
+                'promocion' => $promocion,
+            ]);
+        }
+
+        // Construir mensaje
+        $customMsg = $request->input('mensaje_personalizado');
+        if (! empty($customMsg)) {
+            $mensaje = $customMsg;
+        } else {
+            $descuentoTexto = '';
+            if ($promocion->tipo_descuento === 'porcentaje') {
+                $descuentoTexto = "Descuento: {$promocion->valor_descuento}% OFF";
+            } elseif ($promocion->tipo_descuento === 'monto_fijo') {
+                $descuentoTexto = "Descuento de \${$promocion->valor_descuento}";
+            } elseif ($promocion->tipo_descuento === '2x1') {
+                $descuentoTexto = 'Promoción 2x1';
+            } else {
+                $descuentoTexto = 'Servicio Gratis';
+            }
+
+            $codigoTexto = $promocion->codigo_promocional ? "\n🎟 Código: *{$promocion->codigo_promocional}*" : '';
+            $descTexto = $promocion->descripcion ? "\n📝 {$promocion->descripcion}" : '';
+            $frecuenciaLabel = ucfirst($promocion->frecuencia_whatsapp ?? 'unica');
+
+            $mensaje = "🎉 *¡Novedades en Nails Studio!* 🌸\n\n"
+                ."✨ *{$promocion->nombre}*\n"
+                ."🏷 *{$descuentoTexto}*{$descTexto}{$codigoTexto}\n"
+                ."📅 Válido del {$promocion->fecha_inicio} al {$promocion->fecha_fin}\n"
+                ."🔔 Frecuencia de difusión: {$frecuenciaLabel}\n\n"
+                ."¡Agenda tu cita con nosotros y aprovecha esta súper promoción! 💅✨";
+        }
+
+        $successCount = 0;
+        $failedCount = 0;
+        $failedNumbers = [];
+
+        foreach ($usersWithConsent as $user) {
+            if ($this->whatsappService->sendPromotion($user->number, $mensaje)) {
+                $successCount++;
+            } else {
+                $failedCount++;
+                $failedNumbers[] = $user->number;
+            }
+        }
+
+        return response()->json([
+            'mensaje' => "Envío de la promoción '{$promocion->nombre}' procesado correctamente.",
+            'frecuencia_programada' => $promocion->frecuencia_whatsapp,
+            'total_usuarios' => $usersWithConsent->count(),
+            'enviados_exitosamente' => $successCount,
+            'fallidos' => $failedCount,
+            'numeros_fallidos' => $failedNumbers,
+            'promocion' => $promocion,
         ]);
     }
 }

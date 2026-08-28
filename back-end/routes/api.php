@@ -79,6 +79,9 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('citas')->group(function () {
                 Route::get('/', [CitaController::class, 'index']);
+                Route::post('/', [CitaController::class, 'store']);
+                Route::match(['put', 'patch'], '/{cita}', [CitaController::class, 'update']);
+                Route::delete('/{cita}', [CitaController::class, 'destroy']);
             });
 
             Route::prefix('resenas')->group(function () {
@@ -90,6 +93,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('horarios')->group(function () {
                 Route::post('/', [HorarioDisponibleController::class, 'store']);
                 Route::match(['put', 'patch'], '/{horario}', [HorarioDisponibleController::class, 'update']);
+                Route::delete('/{horario}', [HorarioDisponibleController::class, 'destroy']);
             });
 
             Route::prefix('whatsapp')->group(function () {
@@ -101,10 +105,11 @@ Route::prefix('v1')->group(function () {
             Route::prefix('promociones')->group(function () {
                 Route::get('/', [PromocionController::class, 'index']);
                 Route::post('/', [PromocionController::class, 'store']);
+                Route::get('/activas', [PromocionController::class, 'activas']);
                 Route::get('/{promocion}', [PromocionController::class, 'show']);
                 Route::match(['put', 'patch'], '/{promocion}', [PromocionController::class, 'update']);
                 Route::delete('/{promocion}', [PromocionController::class, 'destroy']);
-                Route::get('/activas', [PromocionController::class, 'activas']);
+                Route::post('/{promocion}/enviar-whatsapp', [PromocionController::class, 'enviarWhatsApp']);
             });
         });
     });

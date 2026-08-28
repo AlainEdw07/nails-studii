@@ -196,182 +196,55 @@ const buildChatbotFlows = () => {
 
     const menuQuestion = findQuestion('menu_principal')
     const servicesQuestion = findQuestion('listar_servicios')
+    const pricesQuestion = findQuestion('mostrar_precios')
     const scheduleQuestion = findQuestion('mostrar_horarios')
-    const requestServiceQuestion = findQuestion('pedir_servicio')
-    const requestDateQuestion = findQuestion('pedir_fecha')
-    const requestTimeQuestion = findQuestion('pedir_hora')
-    const requestNameQuestion = findQuestion('pedir_nombre')
-    const requestPhoneQuestion = findQuestion('pedir_telefono')
-    const requestNotesQuestion = findQuestion('pedir_notas')
-    const confirmQuestion = findQuestion('confirmacion_cita')
+    const availabilityQuestion = findQuestion('consultar_disponibilidad')
+    const advisorQuestion = findQuestion('derivar_whatsapp')
 
-    const serviceSelectionFlow = addKeyword<Provider, Database>(['servicios', 'servicio', 'agendar', 'cita', utils.setEvent('SERVICE_SELECTION')])
-        .addAnswer(`${servicesQuestion.pregunta}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios) : 'No hay servicios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
-            const body = (ctx.body || '').toString().trim()
-            const servicios = chatbotData!.servicios
-            if (/^\d+$/.test(body)) {
-                const idx = parseInt(body, 10) - 1
-                if (servicios[idx]) {
-                    await state.update({ servicio: servicios[idx].nombre, servicio_id: servicios[idx].id })
-                    return gotoFlow(dateFlow)
-                }
-            }
+    const serviceSelectionFlow = addKeyword<Provider, Database>(['servicios', 'servicio', 'catalogo', 'catálogo', utils.setEvent('SERVICE_SELECTION')])
+        .addAnswer(`${servicesQuestion.pregunta ?? 'Aquí está nuestro catálogo de servicios:'}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: ${s.descripcion ?? ''} (Precio: $${s.precio ?? 'N/A'})` }))) : 'No hay servicios disponibles en este momento.'}`)
 
-            const found = servicios.find((s: any) => s.nombre?.toLowerCase() === body.toLowerCase())
-            if (found) {
-                await state.update({ servicio: found.nombre, servicio_id: found.id })
-                return gotoFlow(dateFlow)
-            }
+    const priceFlow = addKeyword<Provider, Database>(['precios', 'precio', 'costo', 'costos', utils.setEvent('PRICE_FLOW')])
+        .addAnswer(`${pricesQuestion.pregunta ?? 'Precios aproximados:'}\n\n${chatbotData!.servicios && chatbotData!.servicios.length ? renderOptions(chatbotData!.servicios.map((s: any) => ({ nombre: `${s.nombre}: $${s.precio ?? 'A consultar'}` }))) : 'Consultar directamente con un asesor.'}`)
 
-            await flowDynamic('No entendí el servicio seleccionado. Escribe el número o el nombre del servicio que deseas.')
-            return gotoFlow(serviceSelectionFlow)
-        })
+    const scheduleFlow = addKeyword<Provider, Database>(['horarios', 'horario', 'mostrar horarios', utils.setEvent('SCHEDULE_FLOW')])
+        .addAnswer(`${scheduleQuestion.pregunta ?? 'Nuestros horarios de atención son:'}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((h: any) => ({ nombre: `${h.dia_semana}: ${h.hora_inicio} - ${h.hora_fin}` }))) : 'Atendemos de Lunes a Sábado de 9:00 AM a 7:00 PM.'}`)
 
-    const dateFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_DATE'))
-        .addAnswer(requestDateQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
-            const fechaRaw = (ctx.body || '').toString().trim()
-            const fechaValid = formatDateInput(fechaRaw)
-            const parsedDate = fechaValid ? parseDateInput(fechaRaw) : null
-            if (!fechaValid || !parsedDate || !isDateInFutureOrToday(parsedDate)) {
-                await flowDynamic('La fecha ingresada no es válida. Por favor ingresa una fecha en formato YYYY-MM-DD o DD/MM/YYYY y que sea hoy o una fecha futura.')
-                return gotoFlow(dateFlow)
-            }
+    const availabilityFlow = addKeyword<Provider, Database>(['disponibilidad', 'disponible', utils.setEvent('AVAILABILITY_FLOW')])
+        .addAnswer(availabilityQuestion.pregunta ?? 'Mantenemos atención general en nuestros horarios establecidos. Si deseas confirmar un horario específico, escríbenos para derivarte con un asesor.')
 
-            await state.update({ fecha: fechaValid })
-            return gotoFlow(timeFlow)
-        })
-
-    const timeFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_TIME'))
-        .addAnswer(requestTimeQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
-            const horaRaw = (ctx.body || '').toString().trim()
-            const horaValid = normalizeTimeInput(horaRaw)
-            if (!horaValid) {
-                await flowDynamic('La hora ingresada no es válida. Usa el formato HH:MM, por ejemplo 14:30.')
-                return gotoFlow(timeFlow)
-            }
-
-            await state.update({ hora: horaValid })
-            return gotoFlow(nameFlow)
-        })
-
-    const nameFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_NAME'))
-        .addAnswer(requestNameQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
-            const nombreRaw = (ctx.body || '').toString().trim()
-            if (!isValidName(nombreRaw)) {
-                await flowDynamic('Por favor ingresa tu nombre completo o un nombre válido para continuar.')
-                return gotoFlow(nameFlow)
-            }
-
-            await state.update({ nombre: nombreRaw })
-            return gotoFlow(phoneFlow)
-        })
-
-    const phoneFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_PHONE'))
-        .addAnswer(requestPhoneQuestion.pregunta, { capture: true }, async (ctx, { state, gotoFlow, flowDynamic }) => {
-            const telefonoRaw = (ctx.body || '').toString().trim()
-            if (!isValidPhoneNumber(telefonoRaw)) {
-                await flowDynamic('El teléfono ingresado no es válido. Por favor usa solo números y opcionalmente un +, por ejemplo +573001234567.')
-                return gotoFlow(phoneFlow)
-            }
-
-            await state.update({ telefono: telefonoRaw })
-            return gotoFlow(notesFlow)
-        })
-
-    const notesFlow = addKeyword<Provider, Database>(utils.setEvent('REQUEST_NOTES'))
-        .addAnswer(requestNotesQuestion.pregunta)
-        .addAnswer(renderOptions(requestNotesQuestion.opciones_respuesta), { capture: true }, async (ctx, { state, gotoFlow }) => {
-            const answer = ctx.body.toLowerCase()
-            if (answer.includes('no') || answer.startsWith('1')) {
-                await state.update({ notas: '' })
-                return gotoFlow(confirmFlow)
-            }
-
-            if (answer.includes('sí') || answer.includes('si') || answer.startsWith('2')) {
-                return gotoFlow(notesTextFlow)
-            }
-
-            return gotoFlow(notesTextFlow)
-        })
-
-    const notesTextFlow = addKeyword<Provider, Database>(utils.setEvent('NOTES_TEXT'))
-        .addAnswer('Escribe tus notas adicionales para la cita.', { capture: true }, async (ctx, { state, gotoFlow }) => {
-            await state.update({ notas: ctx.body })
-            return gotoFlow(confirmFlow)
-        })
-
-    const confirmFlow = addKeyword<Provider, Database>(utils.setEvent('CONFIRM_CITA'))
-        .addAnswer(confirmQuestion.pregunta, {}, async (_, { flowDynamic, state }) => {
-            const service = state.get('servicio') || 'un servicio'
-            const fecha = state.get('fecha') || 'una fecha'
-            const hora = state.get('hora') || 'una hora'
-            const nombre = state.get('nombre') || 'un nombre'
-            const telefono = state.get('telefono') || 'un teléfono'
-            const notas = state.get('notas') || 'sin notas adicionales'
-
-            await flowDynamic(`Resumen:\nServicio: ${service}\nFecha: ${fecha}\nHora: ${hora}\nNombre: ${nombre}\nTeléfono: ${telefono}\nNotas: ${notas}`)
-        })
-        .addAnswer(renderOptions(confirmQuestion.opciones_respuesta), { capture: true }, async (ctx, { gotoFlow, flowDynamic, state }) => {
-            const answer = (ctx.body || '').toString().toLowerCase()
-            if (answer.includes('resumen') || answer.startsWith('1')) {
-                return gotoFlow(confirmFlow)
-            }
-
-            if (answer.includes('confirm') || answer.includes('confirmar') || answer.includes('sí') || answer.startsWith('2')) {
-                await flowDynamic('Creando tu cita, un momento...')
-                const result = await createCitaFromState(state)
-                await flowDynamic(result)
-                return gotoFlow(mainMenuFlow)
-            }
-
-            if (answer.includes('volver') || answer.startsWith('3')) {
-                return gotoFlow(mainMenuFlow)
-            }
-
-            await flowDynamic('No entendí tu respuesta. Por favor responde con la opción correcta.')
-            return gotoFlow(confirmFlow)
-        })
-
-    const scheduleFlow = addKeyword<Provider, Database>(['horarios', 'horario', 'mostrar horarios', 'mostrar horario', utils.setEvent('SCHEDULE_FLOW')])
-        .addAnswer(`${scheduleQuestion.pregunta}\n\n${chatbotData!.horarios_disponibles && chatbotData!.horarios_disponibles.length ? renderOptions(chatbotData!.horarios_disponibles.map((horario) => ({ nombre: `${horario.dia_semana} ${horario.hora_inicio}-${horario.hora_fin}` }))) : 'No hay horarios disponibles en este momento. Escribe *recargar* para intentar obtenerlos nuevamente.'}`, { capture: true }, async (ctx, { gotoFlow, flowDynamic }) => {
-            const text = (ctx.body || '').toString().trim().toLowerCase()
-            const selectedIndex = /^\s*([0-9]+)\s*$/.exec(text)
-            if (selectedIndex) {
-                const idx = parseInt(selectedIndex[1], 10) - 1
-                const horarios = chatbotData!.horarios_disponibles
-                if (horarios[idx]) {
-                    await flowDynamic(`Perfecto, seleccionaste ${horarios[idx].dia_semana} ${horarios[idx].hora_inicio}-${horarios[idx].hora_fin}. Ahora elige el servicio que deseas reservar.`)
-                    return gotoFlow(serviceSelectionFlow)
-                }
-            }
-            if (text.includes('agendar') || text.includes('cita') || text.startsWith('3')) {
-                return gotoFlow(serviceSelectionFlow)
-            }
-            await flowDynamic('No entendí tu respuesta. Escribe el número del horario que prefieres o escribe "agendar" para iniciar una cita.')
-            return gotoFlow(scheduleFlow)
-        })
+    const advisorFlow = addKeyword<Provider, Database>(['asesor', 'whatsapp', 'humano', 'ayuda', utils.setEvent('ADVISOR_FLOW')])
+        .addAnswer(advisorQuestion.pregunta ?? 'Un asesor se pondrá en contacto contigo a la brevedad. Por favor déjanos tu duda.')
 
     const mainMenuFlow = addKeyword<Provider, Database>(['hi', 'hello', 'hola', 'menu', 'menú'])
-        .addAnswer(menuQuestion.pregunta)
-        .addAnswer(renderOptions(menuQuestion.opciones_respuesta), { capture: true }, async (ctx, { gotoFlow, fallBack }) => {
+        .addAnswer(menuQuestion.pregunta ?? '¡Hola! ¿En qué puedo ayudarte hoy?')
+        .addAnswer(renderOptions(menuQuestion.opciones_respuesta ?? [
+            'Catálogo de servicios',
+            'Precios aproximados',
+            'Horarios disponibles',
+            'Consulta de disponibilidad general',
+            'Derivar atención a WhatsApp'
+        ]), { capture: true }, async (ctx, { gotoFlow, fallBack }) => {
             const text = ctx.body.toLowerCase()
-            if (text.includes('servicio') || text.includes('servicios') || text.startsWith('1')) {
+            if (text.includes('servicio') || text.includes('catalogo') || text.includes('catálogo') || text.startsWith('1')) {
                 return gotoFlow(serviceSelectionFlow)
             }
-            if (text.includes('horario') || text.includes('horarios') || text.startsWith('2')) {
+            if (text.includes('precio') || text.startsWith('2')) {
+                return gotoFlow(priceFlow)
+            }
+            if (text.includes('horario') || text.startsWith('3')) {
                 return gotoFlow(scheduleFlow)
             }
-            if (text.includes('agendar') || text.includes('cita') || text.startsWith('3')) {
-                return gotoFlow(serviceSelectionFlow)
+            if (text.includes('disponibil') || text.startsWith('4')) {
+                return gotoFlow(availabilityFlow)
             }
-            if (text.includes('asesor') || text.includes('asesorar') || text.startsWith('4')) {
-                await ctx.reply('Un asesor te atenderá pronto. Mientras tanto, puedes usar el menú principal escribiendo "menu".')
-                return
+            if (text.includes('asesor') || text.includes('whatsapp') || text.startsWith('5')) {
+                return gotoFlow(advisorFlow)
             }
-            return fallBack('No entendí tu opción, por favor elige servicios, horarios o agendar una cita.')
+            return fallBack('No entendí tu opción. Por favor elige una opción del menú (1-5).')
         })
 
-    return [mainMenuFlow, serviceSelectionFlow, scheduleFlow, dateFlow, timeFlow, nameFlow, phoneFlow, notesFlow, notesTextFlow, confirmFlow]
+    return [mainMenuFlow, serviceSelectionFlow, priceFlow, scheduleFlow, availabilityFlow, advisorFlow]
 }
 
 const loadChatbotData = async () => {

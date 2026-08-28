@@ -4,8 +4,7 @@
     <div *ngFor="let msg of mensajes" [class.justify-end]="!msg.esBot" class="flex">
       <div [ngClass]="msg.esBot
         ? 'bg-[#303238] text-[#F0EFEB]'
-        : 'border border-[#303238] text-[#303238]'"
-        class="min-h-8 max-w-[80%] py-1 flex items-center px-2 text-sm">
+        : 'border border-[#303238] text-[#303238]'" class="min-h-8 max-w-[80%] py-1 flex items-center px-2 text-sm">
         {{ msg.texto }}
       </div>
     </div>
@@ -13,11 +12,10 @@
 
   <!-- Opciones predeterminadas -->
   <div class="p-2 flex flex-col items-end gap-1">
-    <div *ngFor="let op of opcionesActuales"
-      (click)="seleccionarOpcion(op)"
+    <div *ngFor="let op of opcionesActuales" (click)="seleccionarOpcion(op)"
       class="text-sm border max-w-[80%] border-[#303238] px-2 py-1 hover:bg-[#303238] hover:text-[#F0EFEB] transition-colors cursor-pointer">
       {{ op.texto }}
-  </div>
+    </div>
   </div>
 </div>
 

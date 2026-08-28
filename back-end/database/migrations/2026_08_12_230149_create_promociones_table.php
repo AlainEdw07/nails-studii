@@ -25,6 +25,7 @@ return new class extends Migration
             $table->integer('usos_actuales')->default(0);
             $table->enum('estado', ['activo', 'inactivo', 'agotado'])->default('activo');
             $table->boolean('aplica_todos_servicios')->default(false);
+            $table->string('frecuencia_whatsapp')->default('sin_envio');
             $table->timestamps();
         });
     }

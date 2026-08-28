@@ -12,15 +12,6 @@ export interface ServicioAdmin {
   estado: 'activo' | 'inactivo';
 }
 
-export interface ResenaAdmin {
-  id: number;
-  nombre_cliente: string;
-  comentario: string | null;
-  calificacion: number;
-  fecha: string;
-  estado_aprobacion: 'pendiente' | 'aprobado' | 'rechazado';
-}
-
 export interface ServicioCreatePayload {
   nombre: string;
   descripcion?: string | null;
@@ -28,6 +19,40 @@ export interface ServicioCreatePayload {
   duracion_estimada: number;
   imagen_principal?: string | null;
   estado?: 'activo' | 'inactivo';
+}
+
+export interface PromocionAdmin {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  tipo_descuento: 'porcentaje' | 'monto_fijo' | '2x1' | 'servicio_gratis';
+  valor_descuento: number | string | null;
+  fecha_inicio: string;
+  fecha_fin: string;
+  condiciones: string | null;
+  codigo_promocional: string | null;
+  usos_maximos: number | null;
+  usos_actuales: number;
+  estado: 'activo' | 'inactivo' | 'agotado';
+  aplica_todos_servicios: boolean;
+  frecuencia_whatsapp?: 'sin_envio' | 'unica' | 'diaria' | 'semanal' | 'quincenal' | 'mensual';
+  servicios?: Array<{ id: number; nombre: string; precio: number | string | null }>;
+}
+
+export interface PromocionCreatePayload {
+  nombre: string;
+  descripcion?: string | null;
+  tipo_descuento: 'porcentaje' | 'monto_fijo' | '2x1' | 'servicio_gratis';
+  valor_descuento?: number | null;
+  fecha_inicio: string;
+  fecha_fin: string;
+  condiciones?: string | null;
+  codigo_promocional?: string | null;
+  usos_maximos?: number | null;
+  aplica_todos_servicios?: boolean;
+  frecuencia_whatsapp?: 'sin_envio' | 'unica' | 'diaria' | 'semanal' | 'quincenal' | 'mensual';
+  estado?: 'activo' | 'inactivo' | 'agotado';
+  servicio_ids?: number[];
 }
 
 export interface CitaAdmin {
@@ -55,6 +80,16 @@ export interface HorarioDisponible {
   activo: boolean;
 }
 
+export interface EnviarWhatsAppResponse {
+  mensaje: string;
+  frecuencia_programada?: string;
+  total_usuarios?: number;
+  enviados_exitosamente?: number;
+  fallidos?: number;
+  numeros_fallidos?: string[];
+  promocion?: PromocionAdmin;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   constructor(private api: ApiService) {}
@@ -75,20 +110,39 @@ export class AdminService {
     return this.api.deleteAuthorized(`/admin/servicios/${id}`);
   }
 
-  obtenerResenasAdmin(): Observable<{ resenas: ResenaAdmin[] }> {
-    return this.api.getAuthorized('/admin/resenas');
+  obtenerPromociones(): Observable<{ promociones: PromocionAdmin[] }> {
+    return this.api.getAuthorized('/admin/promociones');
   }
 
-  actualizarResena(id: number, datos: Partial<Pick<ResenaAdmin, 'estado_aprobacion'>>) {
-    return this.api.patchAuthorized(`/admin/resenas/${id}`, datos);
+  crearPromocion(datos: PromocionCreatePayload): Observable<{ mensaje: string; promocion: PromocionAdmin }> {
+    return this.api.postAuthorized('/admin/promociones', datos);
   }
 
-  eliminarResena(id: number) {
-    return this.api.deleteAuthorized(`/admin/resenas/${id}`);
+  actualizarPromocion(id: number, datos: Partial<PromocionCreatePayload>): Observable<{ mensaje: string; promocion: PromocionAdmin }> {
+    return this.api.patchAuthorized(`/admin/promociones/${id}`, datos);
+  }
+
+  eliminarPromocion(id: number): Observable<{ mensaje: string }> {
+    return this.api.deleteAuthorized(`/admin/promociones/${id}`);
+  }
+
+  enviarPromocionWhatsApp(
+    id: number,
+    datos?: { frecuencia_whatsapp?: string; mensaje_personalizado?: string }
+  ): Observable<EnviarWhatsAppResponse> {
+    return this.api.postAuthorized(`/admin/promociones/${id}/enviar-whatsapp`, datos || {});
   }
 
   obtenerCitas(): Observable<{ citas: CitaAdmin[] }> {
     return this.api.getAuthorized('/admin/citas');
+  }
+
+  actualizarCita(id: number, datos: Partial<CitaAdmin>): Observable<{ mensaje: string; cita: CitaAdmin }> {
+    return this.api.patchAuthorized(`/admin/citas/${id}`, datos);
+  }
+
+  eliminarCita(id: number): Observable<{ mensaje: string }> {
+    return this.api.deleteAuthorized(`/admin/citas/${id}`);
   }
 
   obtenerHorarios(): Observable<{ horarios_disponibles: HorarioDisponible[] }> {
@@ -101,5 +155,9 @@ export class AdminService {
 
   actualizarHorario(id: number, datos: { hora_inicio: string; hora_fin: string; activo?: boolean }) {
     return this.api.patchAuthorized(`/admin/horarios/${id}`, datos);
+  }
+
+  eliminarHorario(id: number): Observable<{ mensaje: string }> {
+    return this.api.deleteAuthorized(`/admin/horarios/${id}`);
   }
 }

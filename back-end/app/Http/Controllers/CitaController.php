@@ -97,4 +97,68 @@ class CitaController extends Controller
             'cita' => $cita,
         ], 201);
     }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $cita = Cita::find($id);
+
+        if (! $cita) {
+            return response()->json([
+                'mensaje' => 'Cita no encontrada.',
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'nombre_cliente' => ['sometimes', 'string', 'max:255'],
+            'telefono' => ['nullable', 'string', 'max:20'],
+            'correo' => ['nullable', 'email', 'max:255'],
+            'servicio_id' => ['nullable', 'integer', 'exists:servicios,id'],
+            'fecha_cita' => ['sometimes', 'date'],
+            'hora_cita' => ['sometimes', 'date_format:H:i'],
+            'notas_adicionales' => ['nullable', 'string'],
+            'estado' => ['sometimes', 'string', 'in:pendiente,confirmada,cancelada,completada'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'mensaje' => 'Datos de la cita inválidos.',
+                'errores' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $cita->update($validated);
+
+        if (isset($validated['estado'])) {
+            HistorialCita::create([
+                'cita_id' => $cita->id,
+                'estado' => $validated['estado'],
+            ]);
+        }
+
+        $cita->load('servicio:id,nombre,precio,duracion_estimada', 'promocion:id,nombre,tipo_descuento,valor_descuento');
+
+        return response()->json([
+            'mensaje' => 'Cita actualizada correctamente.',
+            'cita' => $cita,
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $cita = Cita::find($id);
+
+        if (! $cita) {
+            return response()->json([
+                'mensaje' => 'Cita no encontrada.',
+            ], 404);
+        }
+
+        $cita->delete();
+
+        return response()->json([
+            'mensaje' => 'Cita eliminada correctamente.',
+        ]);
+    }
 }

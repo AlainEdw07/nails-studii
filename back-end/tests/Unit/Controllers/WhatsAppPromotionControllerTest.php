@@ -49,6 +49,6 @@ class WhatsAppPromotionControllerTest extends TestCase
         $this->assertArrayHasKey('total_usuarios', $data);
         $this->assertArrayHasKey('con_consentimiento', $data);
         $this->assertArrayHasKey('sin_consentimiento', $data);
-        $this->assertArrayHasKey('porcentaje_consentimientco', $data);
+        $this->assertArrayHasKey('porcentaje_consentimiento', $data);
     }
 }
