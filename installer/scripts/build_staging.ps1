@@ -32,11 +32,11 @@ if (Test-Path $stagingRoot) {
 New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
 
 # Exclusiones globales
-$excludeDirs = @('node_modules','vendor','.git','logs','storage','tmp','temp','.vs','.idea')
+$excludeDirs = @('node_modules','vendor','.git','logs','storage','tmp','temp','.vs','.idea','build','.gradle','.cxx','captures')
 $excludeFiles = @('.env','.env.local')
 
 # Folders to include
-$folders = @('back-end','front-end','base-ts-baileys-memory')
+$folders = @('back-end','front-end','base-ts-baileys-memory','wearable')
 
 # Helper: use robocopy if available
 function Copy-With-Robocopy {
@@ -152,4 +152,3 @@ if ($foundProblems) {
 
 Write-Host "Staging created successfully." -ForegroundColor Green
 exit 0
-
